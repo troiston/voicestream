@@ -1,0 +1,338 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+@source "../**/*.{ts,tsx}";
+
+/* Dark mode via class .dark no <html> (next-themes) */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ─────────────────────────────────────────────────────────────────
+   ROOT = DARK (modo padrão — Dark & Premium, estilo Raycast/Arc/Resend)
+   Accent: Indigo-Violet  |  Base: Charcoal slate
+───────────────────────────────────────────────────────────────── */
+:root {
+  /* Backgrounds */
+  --background:        oklch(8.5% 0.012 265);
+  --foreground:        oklch(96% 0.008 90);
+
+  /* Surfaces empilhadas */
+  --surface-1:         oklch(11.5% 0.012 265);
+  --surface-2:         oklch(14.5% 0.014 265);
+  --surface-3:         oklch(18% 0.016 265);
+
+  /* Neutros */
+  --muted:             oklch(14.5% 0.012 265);
+  --muted-foreground:  oklch(55% 0.018 265);
+  --border:            oklch(22% 0.018 265);
+  --border-subtle:     oklch(16% 0.014 265);
+
+  /* Brand accent indigo (nosso, para utilitários custom) */
+  --brand:             oklch(65% 0.22 280);
+  --brand-hover:       oklch(70% 0.22 280);
+  --brand-foreground:  oklch(98% 0.005 90);
+  --brand-muted:       oklch(65% 0.22 280 / 0.15);
+
+  /* Gradiente de destaque (indigo → violet) */
+  --grad-from:         oklch(62% 0.24 280);
+  --grad-to:           oklch(60% 0.22 320);
+
+  /* Semânticos */
+  --info:              oklch(68% 0.15 245);
+  --success:           oklch(70% 0.16 150);
+  --warning:           oklch(80% 0.16 85);
+  --danger:            oklch(65% 0.22 25);
+  --danger-foreground: oklch(98% 0.005 90);
+
+  /* Sombras */
+  --shadow-sm:  0 1px 3px 0 rgb(0 0 0 / 0.5);
+  --shadow-md:  0 8px 32px -8px rgb(0 0 0 / 0.65);
+  --shadow-lg:  0 24px 64px -16px rgb(0 0 0 / 0.75);
+  --shadow-glow: 0 0 32px oklch(65% 0.22 280 / 0.35);
+
+  /* Raios */
+  --radius-xs:  0.25rem;
+  --radius-sm:  0.5rem;
+  --radius-md:  0.75rem;
+  --radius-lg:  1rem;
+  --radius-xl:  1.25rem;
+  --radius-2xl: 1.5rem;
+
+  /* Tipografia fluida */
+  --text-xs:   clamp(0.75rem, 0.72rem + 0.15vw, 0.8125rem);
+  --text-sm:   clamp(0.875rem, 0.84rem + 0.18vw, 0.95rem);
+  --text-base: clamp(1rem, 0.95rem + 0.22vw, 1.0625rem);
+  --text-lg:   clamp(1.125rem, 1.03rem + 0.45vw, 1.25rem);
+  --text-xl:   clamp(1.25rem, 1.08rem + 0.75vw, 1.5rem);
+  --text-2xl:  clamp(1.5rem, 1.18rem + 1.25vw, 1.875rem);
+  --text-3xl:  clamp(1.875rem, 1.45rem + 1.8vw, 2.25rem);
+  --text-4xl:  clamp(2.25rem, 1.6rem + 2.8vw, 3rem);
+
+  /* ── Variáveis shadcn/ui (bridge) ── */
+  --radius:                  0.75rem;
+  --card:                    oklch(11.5% 0.012 265);
+  --card-foreground:         oklch(96% 0.008 90);
+  --popover:                 oklch(11.5% 0.012 265);
+  --popover-foreground:      oklch(96% 0.008 90);
+  --primary:                 oklch(65% 0.22 280);
+  --primary-foreground:      oklch(98% 0.005 90);
+  --secondary:               oklch(14.5% 0.014 265);
+  --secondary-foreground:    oklch(96% 0.008 90);
+  --accent:                  oklch(14.5% 0.014 265);
+  --accent-foreground:       oklch(96% 0.008 90);
+  --destructive:             oklch(65% 0.22 25);
+  --destructive-foreground:  oklch(98% 0.005 90);
+  --input:                   oklch(22% 0.018 265);
+  --ring:                    oklch(65% 0.22 280);
+
+  /* Charts */
+  --chart-1: oklch(65% 0.22 280);
+  --chart-2: oklch(70% 0.18 210);
+  --chart-3: oklch(72% 0.16 150);
+  --chart-4: oklch(78% 0.16 85);
+  --chart-5: oklch(65% 0.22 320);
+
+  /* Sidebar (shadcn) */
+  --sidebar:                      oklch(11.5% 0.012 265);
+  --sidebar-foreground:           oklch(96% 0.008 90);
+  --sidebar-primary:              oklch(65% 0.22 280);
+  --sidebar-primary-foreground:   oklch(98% 0.005 90);
+  --sidebar-accent:               oklch(14.5% 0.014 265);
+  --sidebar-accent-foreground:    oklch(96% 0.008 90);
+  --sidebar-border:               oklch(22% 0.018 265);
+  --sidebar-ring:                 oklch(65% 0.22 280);
+}
+
+/* ─────────────────────────────────────────────────────────────────
+   LIGHT — overrides quando html.light (next-themes)
+───────────────────────────────────────────────────────────────── */
+html.light {
+  --background:        oklch(98.5% 0.008 95);
+  --foreground:        oklch(14% 0.018 265);
+  --surface-1:         oklch(97% 0.010 95);
+  --surface-2:         oklch(95% 0.012 95);
+  --surface-3:         oklch(93% 0.014 95);
+  --muted:             oklch(95.5% 0.010 95);
+  --muted-foreground:  oklch(46% 0.018 265);
+  --border:            oklch(88% 0.012 95);
+  --border-subtle:     oklch(92% 0.010 95);
+  --brand:             oklch(58% 0.22 280);
+  --brand-hover:       oklch(53% 0.22 280);
+  --brand-foreground:  oklch(98% 0.005 90);
+  --brand-muted:       oklch(58% 0.22 280 / 0.10);
+  --info:              oklch(60% 0.15 245);
+  --success:           oklch(58% 0.16 150);
+  --warning:           oklch(68% 0.16 85);
+  --danger:            oklch(55% 0.22 25);
+  --danger-foreground: oklch(98% 0.005 90);
+  --shadow-sm:  0 1px 2px 0 rgb(0 0 0 / 0.07);
+  --shadow-md:  0 8px 28px -10px rgb(0 0 0 / 0.18);
+  --shadow-lg:  0 24px 48px -16px rgb(0 0 0 / 0.22);
+  --shadow-glow: 0 0 24px oklch(58% 0.22 280 / 0.20);
+
+  /* shadcn bridge light */
+  --card:                oklch(97% 0.010 95);
+  --card-foreground:     oklch(14% 0.018 265);
+  --popover:             oklch(98.5% 0.008 95);
+  --popover-foreground:  oklch(14% 0.018 265);
+  --primary:             oklch(58% 0.22 280);
+  --primary-foreground:  oklch(98% 0.005 90);
+  --secondary:           oklch(95% 0.012 95);
+  --secondary-foreground: oklch(14% 0.018 265);
+  --accent:              oklch(95% 0.012 95);
+  --accent-foreground:   oklch(14% 0.018 265);
+  --destructive:         oklch(55% 0.22 25);
+  --destructive-foreground: oklch(98% 0.005 90);
+  --border:              oklch(88% 0.012 95);
+  --input:               oklch(88% 0.012 95);
+  --ring:                oklch(58% 0.22 280);
+  --sidebar:                   oklch(97% 0.010 95);
+  --sidebar-foreground:        oklch(14% 0.018 265);
+  --sidebar-primary:           oklch(58% 0.22 280);
+  --sidebar-primary-foreground: oklch(98% 0.005 90);
+  --sidebar-accent:            oklch(95% 0.012 95);
+  --sidebar-accent-foreground: oklch(14% 0.018 265);
+  --sidebar-border:            oklch(88% 0.012 95);
+  --sidebar-ring:              oklch(58% 0.22 280);
+}
+
+/* ─────────────────────────────────────────────────────────────────
+   @theme inline — expõe tokens como utilitários Tailwind
+───────────────────────────────────────────────────────────────── */
+@theme inline {
+  --color-background:        var(--background);
+  --color-foreground:        var(--foreground);
+  --color-surface-1:         var(--surface-1);
+  --color-surface-2:         var(--surface-2);
+  --color-surface-3:         var(--surface-3);
+  --color-muted:             var(--muted);
+  --color-muted-foreground:  var(--muted-foreground);
+  --color-border:            var(--border);
+  --color-border-subtle:     var(--border-subtle);
+  --color-ring:              var(--ring);
+  /* brand = nossa cor de destaque custom (indigo) */
+  --color-brand:             var(--brand);
+  --color-brand-hover:       var(--brand-hover);
+  --color-brand-foreground:  var(--brand-foreground);
+  --color-brand-muted:       var(--brand-muted);
+  /* semânticos */
+  --color-info:              var(--info);
+  --color-success:           var(--success);
+  --color-warning:           var(--warning);
+  --color-danger:            var(--danger);
+  --color-danger-foreground: var(--danger-foreground);
+  /* shadcn tokens */
+  --color-card:                   var(--card);
+  --color-card-foreground:        var(--card-foreground);
+  --color-popover:                var(--popover);
+  --color-popover-foreground:     var(--popover-foreground);
+  --color-primary:                var(--primary);
+  --color-primary-foreground:     var(--primary-foreground);
+  --color-secondary:              var(--secondary);
+  --color-secondary-foreground:   var(--secondary-foreground);
+  --color-accent:                 var(--accent);
+  --color-accent-foreground:      var(--accent-foreground);
+  --color-destructive:            var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-input:                  var(--input);
+  --color-chart-1:                var(--chart-1);
+  --color-chart-2:                var(--chart-2);
+  --color-chart-3:                var(--chart-3);
+  --color-chart-4:                var(--chart-4);
+  --color-chart-5:                var(--chart-5);
+  --color-sidebar:                      var(--sidebar);
+  --color-sidebar-foreground:           var(--sidebar-foreground);
+  --color-sidebar-primary:              var(--sidebar-primary);
+  --color-sidebar-primary-foreground:   var(--sidebar-primary-foreground);
+  --color-sidebar-accent:               var(--sidebar-accent);
+  --color-sidebar-accent-foreground:    var(--sidebar-accent-foreground);
+  --color-sidebar-border:               var(--sidebar-border);
+  --color-sidebar-ring:                 var(--sidebar-ring);
+  /* sombras */
+  --shadow-sm:   var(--shadow-sm);
+  --shadow-md:   var(--shadow-md);
+  --shadow-lg:   var(--shadow-lg);
+  --shadow-glow: var(--shadow-glow);
+  /* raios */
+  --radius-xs:   var(--radius-xs);
+  --radius-sm:   var(--radius-sm);
+  --radius-md:   var(--radius-md);
+  --radius-lg:   var(--radius-lg);
+  --radius-xl:   var(--radius-xl);
+  --radius-2xl:  var(--radius-2xl);
+  /* fontes */
+  --font-sans:   var(--font-geist-sans);
+  --font-mono:   var(--font-geist-mono);
+}
+
+/* ─────────────────────────────────────────────────────────────────
+   Estilos globais
+───────────────────────────────────────────────────────────────── */
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  font-size: var(--text-base);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+dialog::backdrop {
+  background: oklch(0% 0 0 / 0.7);
+  backdrop-filter: blur(4px);
+}
+
+/* ─────────────────────────────────────────────────────────────────
+   Keyframes — animações reutilizáveis
+───────────────────────────────────────────────────────────────── */
+@keyframes marquee-scroll {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────────
+   Utilitários reutilizáveis — aplicar como className="glass-card" etc.
+───────────────────────────────────────────────────────────────── */
+@layer utilities {
+  /* Marquee continuous scroll animation */
+  .animate-marquee {
+    animation: marquee-scroll 20s linear infinite;
+    will-change: transform;
+  }
+
+  /* Glass card: superfície escura translúcida com blur */
+  .glass-card {
+    background: oklch(from var(--surface-1) l c h / 0.65);
+    backdrop-filter: blur(12px) saturate(1.4);
+    border: 1px solid oklch(from var(--border) l c h / 0.6);
+  }
+
+  /* Texto com gradiente indigo → violet */
+  .gradient-text {
+    background: linear-gradient(135deg, var(--grad-from) 0%, var(--grad-to) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* Borda com gradiente via background-clip */
+  .gradient-border {
+    background:
+      linear-gradient(var(--surface-1), var(--surface-1)) padding-box,
+      linear-gradient(135deg, var(--grad-from), var(--grad-to)) border-box;
+    border: 1px solid transparent;
+  }
+
+  /* Glow de destaque no box-shadow */
+  .glow-accent {
+    box-shadow: 0 0 24px var(--brand-muted), 0 0 48px oklch(65% 0.22 280 / 0.08);
+  }
+
+  /* Background de hero com radial glow */
+  .bg-glow-hero {
+    background:
+      radial-gradient(ellipse 80% 50% at 50% -10%, oklch(65% 0.22 280 / 0.18) 0%, transparent 60%),
+      var(--background);
+  }
+
+  /* Padrão de grid pontilhado */
+  .bg-grid-pattern {
+    background-image:
+      linear-gradient(oklch(from var(--border) l c h / 0.35) 1px, transparent 1px),
+      linear-gradient(90deg, oklch(from var(--border) l c h / 0.35) 1px, transparent 1px);
+    background-size: 32px 32px;
+  }
+
+  /* Botão com gradiente CTA */
+  .btn-gradient {
+    background: linear-gradient(135deg, var(--grad-from) 0%, var(--grad-to) 100%);
+    color: oklch(98% 0.005 90);
+    transition: opacity 150ms ease, box-shadow 150ms ease;
+  }
+  .btn-gradient:hover {
+    opacity: 0.9;
+    box-shadow: var(--shadow-glow);
+  }
+  .btn-gradient:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}

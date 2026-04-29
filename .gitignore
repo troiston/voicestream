@@ -1,0 +1,29 @@
+# Dependencies
+node_modules/
+
+# Env (segredos nunca vão para git)
+.env
+.env.local
+.env.*.local
+
+# Next.js
+/.next/
+/out/
+
+# Prisma generated client
+/src/generated/prisma/
+
+# Tests / coverage
+/coverage/
+/playwright-report/
+/test-results/
+*.log
+
+# Editor / SO
+.DS_Store
+.vscode/
+.idea/
+
+# Temp
+*.tsbuildinfo
+.tmp/

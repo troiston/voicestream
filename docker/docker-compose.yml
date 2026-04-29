@@ -1,0 +1,102 @@
+# Compose para DEV LOCAL — espelha a stack de produção (Postgres, Dragonfly, SeaweedFS)
+# Uso: docker compose -f docker/docker-compose.yml up
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: cloudvoice-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: cloudvoice
+      POSTGRES_PASSWORD: cloudvoice
+      POSTGRES_DB: cloudvoice
+    ports:
+      - "5432:5432"
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    networks:
+      - cloudvoice-dev
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U cloudvoice"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  dragonfly:
+    image: docker.dragonflydb.io/dragonflydb/dragonfly:latest
+    container_name: cloudvoice-dragonfly
+    restart: unless-stopped
+    ulimits:
+      memlock: -1
+    ports:
+      - "6379:6379"
+    networks:
+      - cloudvoice-dev
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  seaweedfs:
+    image: chrislusf/seaweedfs:latest
+    container_name: cloudvoice-seaweedfs
+    restart: unless-stopped
+    command: "server -s3 -dir=/data"
+    ports:
+      - "8333:8333" # S3 API
+      - "9333:9333" # master
+      - "8080:8080" # volume
+    volumes:
+      - seaweed_data:/data
+    networks:
+      - cloudvoice-dev
+
+  web:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: cloudvoice-web
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      dragonfly:
+        condition: service_healthy
+      seaweedfs:
+        condition: service_started
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://cloudvoice:cloudvoice@postgres:5432/cloudvoice
+      REDIS_URL: redis://dragonfly:6379
+      S3_ENDPOINT: http://seaweedfs:8333
+    ports:
+      - "3000:3000"
+    networks:
+      - cloudvoice-dev
+
+  worker:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.worker
+    container_name: cloudvoice-worker
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      dragonfly:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://cloudvoice:cloudvoice@postgres:5432/cloudvoice
+      REDIS_URL: redis://dragonfly:6379
+    networks:
+      - cloudvoice-dev
+
+networks:
+  cloudvoice-dev:
+    driver: bridge
+
+volumes:
+  pg_data:
+  seaweed_data:

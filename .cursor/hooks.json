@@ -1,0 +1,36 @@
+{
+  "version": 1,
+  "hooks": {
+    "sessionStart": [
+      { "command": "bash .cursor/hooks/session-bootstrap.sh" }
+    ],
+    "beforeSubmitPrompt": [
+      { "command": "bash .cursor/hooks/enforce-skills.sh" }
+    ],
+    "beforeShellExecution": [
+      { "command": "bash .cursor/hooks/safe-commands.sh" }
+    ],
+    "afterFileEdit": [
+      {
+        "matcher": "docs/**|prisma/schema.prisma|src/app/styleguide/**",
+        "command": "bash .cursor/hooks/phase-doc-sync.sh"
+      }
+    ],
+    "beforeMCPExecution": [
+      {
+        "command": "bash .cursor/hooks/mcp-guard.sh",
+        "failClosed": true
+      }
+    ],
+    "subagentStart": [
+      { "command": "bash .cursor/hooks/subagent-brief.sh" }
+    ],
+    "stop": [
+      { "command": "bash .cursor/hooks/tdd-loop.sh" },
+      { "command": "bash .cursor/hooks/verify-gate.sh" }
+    ],
+    "postToolUseFailure": [
+      { "command": "bash .cursor/hooks/failure-journal.sh" }
+    ]
+  }
+}

@@ -1,0 +1,38 @@
+# Dependências e build
+node_modules
+.next
+out
+dist
+coverage
+
+# Git e VCS
+.git
+.gitignore
+
+# Env e segredos
+.env
+.env.*
+!.env.example
+
+# Markdown (manter README)
+*.md
+!README.md
+
+# Testes e relatórios
+tests
+e2e
+playwright-report
+test-results
+
+# IDE / SO
+.vscode
+.idea
+.DS_Store
+.claude
+
+# Logs
+*.log
+npm-debug.log*
+
+# Docker (evita recursão)
+docker/docker-compose.yml

@@ -1,0 +1,237 @@
+import type { Metadata } from "next";
+
+import { BillingUpgradeDialog } from "@/components/app/billing-upgrade-dialog";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+} from "@/components/ui/table";
+import {
+  currentPlan,
+  mockInvoices,
+  mockPaymentMethods,
+  type MockInvoice,
+} from "@/lib/mocks/invoices";
+import { InvoicesTable } from "@/components/app/invoices-table";
+
+export const metadata: Metadata = {
+  title: "Faturação",
+  description: "Plano, faturas e métodos de pagamento.",
+  robots: { index: false, follow: false },
+};
+
+const money = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
+
+function formatInvoiceAmount(inv: MockInvoice): string {
+  return money.format(inv.amountCents / 100);
+}
+
+function formatDate(iso: string): string {
+  return new Intl.DateTimeFormat("pt-BR", { dateStyle: "medium" }).format(new Date(iso));
+}
+
+function cardBrandLabel(brand: (typeof mockPaymentMethods)[number]["brand"]): string {
+  return brand === "visa" ? "Visa" : "Mastercard";
+}
+
+const PLAN_FEATURES: Record<string, string[]> = {
+  Gratuito: ["5 gravações/mês", "1 espaço", "Transcrição básica"],
+  Pro: ["Gravações ilimitadas", "10 espaços", "Transcrição avançada", "Exportação CSV"],
+  Empresa: ["Tudo no Pro", "Espaços ilimitados", "Acesso à API", "Suporte prioritário", "SSO / SAML"],
+};
+
+export default function BillingPage() {
+  return (
+    <div className="space-y-8">
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight">Faturação</h1>
+        <p className="mt-2 text-sm text-muted-foreground">
+          Vista geral do plano, histórico de faturas e cartões guardados (dados mock).
+        </p>
+      </div>
+
+      {/* Plan cards */}
+      <section aria-labelledby="plans-heading">
+        <h2 id="plans-heading" className="mb-4 text-lg font-semibold tracking-tight text-foreground">
+          Planos disponíveis
+        </h2>
+        <div className="grid gap-4 md:grid-cols-3">
+          {(["Gratuito", "Pro", "Empresa"] as const).map((plan) => {
+            const isCurrent = currentPlan.name === plan;
+            const isRecommended = plan === "Pro";
+            const price = plan === "Gratuito" ? "R$ 0" : plan === "Pro" ? "R$ 29" : "R$ 79";
+            const features = PLAN_FEATURES[plan] ?? [];
+
+            return (
+              <div
+                key={plan}
+                className={
+                  isRecommended
+                    ? "gradient-border rounded-[var(--radius-xl)] p-5"
+                    : isCurrent
+                      ? "rounded-[var(--radius-xl)] border border-brand/30 bg-brand/10 p-5"
+                      : "rounded-[var(--radius-xl)] border border-border/60 bg-surface-1 p-5"
+                }
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-base font-semibold text-foreground">{plan}</span>
+                  {isRecommended && (
+                    <Badge variant="info">Recomendado</Badge>
+                  )}
+                  {isCurrent && !isRecommended && (
+                    <Badge variant="success">Atual</Badge>
+                  )}
+                </div>
+                <p className="gradient-text mt-3 text-3xl font-bold">
+                  {price}
+                  <span className="text-base font-normal text-muted-foreground">/mês</span>
+                </p>
+                <ul className="mt-4 space-y-2">
+                  {features.map((f) => (
+                    <li key={f} className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <svg
+                        className="h-4 w-4 shrink-0 text-brand"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth={2}
+                        viewBox="0 0 24 24"
+                        aria-hidden
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                      </svg>
+                      {f}
+                    </li>
+                  ))}
+                </ul>
+                <Button
+                  type="button"
+                  variant={isCurrent ? "secondary" : "primary"}
+                  size="sm"
+                  className={`mt-6 w-full min-h-11 ${!isCurrent ? "btn-gradient" : ""}`}
+                  disabled={isCurrent}
+                >
+                  {isCurrent ? "Plano atual" : "Selecionar"}
+                </Button>
+              </div>
+            );
+          })}
+        </div>
+      </section>
+
+      {/* Current plan usage */}
+      <section aria-labelledby="plan-heading" className="grid gap-4 lg:grid-cols-3">
+        <Card className="border border-border/60 bg-surface-1 lg:col-span-2">
+          <CardHeader>
+            <h2 id="plan-heading" className="text-lg font-semibold tracking-tight text-foreground">
+              Utilização do plano atual
+            </h2>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-lg font-semibold text-foreground">{currentPlan.name}</span>
+              <Badge variant="outline">Mock</Badge>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Próxima cobrança:{" "}
+              <time dateTime={currentPlan.nextBilling}>{formatDate(currentPlan.nextBilling)}</time>
+            </p>
+            <div>
+              <div className="mb-1 flex justify-between text-sm">
+                <span className="text-muted-foreground">Utilização incluída no ciclo</span>
+                <span className="font-medium text-foreground">{currentPlan.usagePct}%</span>
+              </div>
+              <Progress value={currentPlan.usagePct} />
+            </div>
+            <div className="flex flex-wrap items-center gap-3 pt-2">
+              <BillingUpgradeDialog />
+              <p className="text-xs text-muted-foreground">
+                O diálogo compara Pro com Empresa sem alterar dados reais.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border border-border/60 bg-surface-1">
+          <CardHeader>
+            <h2 className="text-lg font-semibold tracking-tight text-foreground">Próxima fatura</h2>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center justify-center">
+              <div className="relative h-40 w-40 flex items-center justify-center">
+                <div
+                  className="absolute inset-0 rounded-full"
+                  style={{
+                    background: `conic-gradient(var(--brand) 48.33%, var(--surface-3) 0%)`,
+                  }}
+                />
+                <div className="absolute inset-3 rounded-full bg-surface-1" />
+                <div className="relative text-center">
+                  <p className="text-3xl font-bold tabular-nums text-foreground">15</p>
+                  <p className="text-xs text-muted-foreground">dias</p>
+                </div>
+              </div>
+            </div>
+            <div className="space-y-1 border-t border-border/60 pt-3 text-center">
+              <p className="text-xs text-muted-foreground">Próxima fatura</p>
+              <time dateTime={currentPlan.nextBilling} className="text-sm font-medium text-foreground">
+                {formatDate(currentPlan.nextBilling)}
+              </time>
+            </div>
+          </CardContent>
+        </Card>
+      </section>
+
+      {/* Invoices */}
+      <section aria-labelledby="invoices-heading">
+        <Card className="border border-border/60 bg-surface-1">
+          <CardHeader>
+            <h2 id="invoices-heading" className="text-lg font-semibold tracking-tight text-foreground">
+              Faturas recentes
+            </h2>
+          </CardHeader>
+          <CardContent className="overflow-x-auto p-0">
+            <InvoicesTable invoices={mockInvoices} />
+          </CardContent>
+        </Card>
+      </section>
+
+      {/* Payment methods */}
+      <section aria-labelledby="pay-heading">
+        <Card className="border border-border/60 bg-surface-1">
+          <CardHeader>
+            <h2 id="pay-heading" className="text-lg font-semibold tracking-tight text-foreground">
+              Métodos de pagamento
+            </h2>
+          </CardHeader>
+          <CardContent>
+            <ul className="divide-y divide-border/60">
+              {mockPaymentMethods.map((pm) => (
+                <li key={pm.id} className="flex flex-wrap items-center justify-between gap-3 py-4 first:pt-0">
+                  <div>
+                    <p className="font-medium text-foreground">
+                      {cardBrandLabel(pm.brand)} ···· {pm.last4}
+                    </p>
+                    <p className="text-sm text-muted-foreground">Validade {pm.expiryLabel}</p>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    {pm.isDefault ? <Badge variant="default">Predefinido</Badge> : null}
+                    <Button type="button" variant="secondary" size="sm" className="min-h-11" disabled>
+                      Gerir (mock)
+                    </Button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </CardContent>
+        </Card>
+      </section>
+    </div>
+  );
+}
