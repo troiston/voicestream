@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 
 import { BillingUpgradeDialog } from "@/components/app/billing-upgrade-dialog";
+import { PortalButton } from "@/components/app/portal-button";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -47,7 +48,7 @@ const PLAN_PRICES: Record<string, string> = {
   Empresa: "R$ 79",
 };
 
-async function BillingContent() {
+async function BillingContent(props: { checkoutStatus: string | null }) {
   const session = await requireSession();
   const { plan: currentPlanKey, subscription } = await getCurrentPlan(session.userId);
   const minutesUsed = await getMonthlyMinutesUsed(session.userId);
@@ -88,26 +89,8 @@ async function BillingContent() {
     ? formatDate(subscription.currentPeriodEnd.toISOString())
     : null;
 
-  const handlePortalClick = async () => {
-    try {
-      const response = await fetch("/api/billing/portal", {
-        method: "POST",
-      });
-
-      if (!response.ok) {
-        throw new Error("Falha ao acessar portal");
-      }
-
-      const data = await response.json();
-      window.location.href = data.url;
-    } catch (error) {
-      console.error("Portal error:", error);
-    }
-  };
-
-  // Handle checkout query params
-  const searchParams = new URLSearchParams(typeof window !== "undefined" ? window.location.search : "");
-  const checkoutStatus = searchParams.get("checkout");
+  // checkoutStatus virá de searchParams da page (passado pelo wrapper async).
+  const checkoutStatus = props.checkoutStatus;
 
   return (
     <div className="space-y-8">
@@ -231,15 +214,7 @@ async function BillingContent() {
             </div>
             <div className="flex flex-wrap items-center gap-3 pt-2">
               {(currentPlanKey === "free" || currentPlanKey === "pro") && <BillingUpgradeDialog currentPlan={currentPlanKey} />}
-              <Button
-                type="button"
-                variant="secondary"
-                size="sm"
-                className="min-h-11"
-                onClick={handlePortalClick}
-              >
-                Gerenciar assinatura
-              </Button>
+              <PortalButton className="min-h-11">Gerenciar assinatura</PortalButton>
             </div>
           </CardContent>
         </Card>
@@ -310,13 +285,7 @@ async function BillingContent() {
             <p className="mb-4 text-sm text-muted-foreground">
               Acesse o portal de billing do Stripe para gerenciar seus métodos de pagamento e assinatura.
             </p>
-            <Button
-              type="button"
-              variant="primary"
-              onClick={handlePortalClick}
-            >
-              Abrir portal de billing
-            </Button>
+            <PortalButton variant="primary">Abrir portal de billing</PortalButton>
           </CardContent>
         </Card>
       </section>
@@ -324,10 +293,15 @@ async function BillingContent() {
   );
 }
 
-export default async function BillingPage() {
+export default async function BillingPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ checkout?: string }>;
+}) {
+  const params = await searchParams;
   return (
     <Suspense fallback={<div className="space-y-8">Carregando...</div>}>
-      <BillingContent />
+      <BillingContent checkoutStatus={params.checkout ?? null} />
     </Suspense>
   );
 }

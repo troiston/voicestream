@@ -2,6 +2,7 @@
 // Worker BullMQ — executar com `tsx src/workers/transcribe.ts`.
 // Em produção via Dockerfile.worker.
 
+import "dotenv/config";
 import { Worker, type Job } from "bullmq";
 import { redisConnection, redisSubscriber } from "@/lib/queue/redis";
 import { type TranscribeJobData } from "@/lib/queue/index";
