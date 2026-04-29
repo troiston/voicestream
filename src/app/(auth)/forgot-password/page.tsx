@@ -3,7 +3,7 @@ import { ForgotForm } from "@/components/auth/forgot-form"
 
 export const metadata: Metadata = {
   title: "Recuperar senha",
-  description: "Pedir link de redefinição para a sua conta CloudVoice.",
+  description: "Pedir link de redefinição para a sua conta VoiceStream.",
   robots: { index: false, follow: false },
 }
 

@@ -44,7 +44,7 @@ export function OnboardingWizard({ className }: OnboardingWizardProps) {
             <Mic className="h-6 w-6 text-brand" />
           </div>
           <h1 className="text-2xl font-bold tracking-tight gradient-text">Primeiros passos</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Configure o CloudVoice ao seu gosto</p>
+          <p className="mt-1 text-sm text-muted-foreground">Configure o VoiceStream ao seu gosto</p>
         </div>
 
         {/* Step indicator */}

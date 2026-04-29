@@ -1,6 +1,6 @@
 import Link from "next/link"
 import { ThemeToggle } from "@/components/ui/theme-toggle"
-import { CloudVoiceLogo } from "@/components/brand/cloud-voice-logo"
+import { VoiceStreamLogo } from "@/components/brand/voice-stream-logo"
 import { MobileMenu } from "./mobile-menu"
 
 const isDev = process.env.NODE_ENV === "development"
@@ -26,9 +26,9 @@ export function Navbar() {
           <Link
             href="/"
             className="inline-flex items-center rounded focus-visible:ring-2 focus-visible:ring-ring"
-            aria-label="CloudVoice, página inicial"
+            aria-label="VoiceStream, página inicial"
           >
-            <CloudVoiceLogo size="sm" priority />
+            <VoiceStreamLogo size="sm" priority />
           </Link>
         </div>
 

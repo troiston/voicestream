@@ -6,7 +6,7 @@ const site = () => process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") ?? "http:
 
 export const metadata: Metadata = {
   title: "Sobre nós",
-  description: "Conheça o CloudVoice: missão, valores, equipe e história. Redefindo o registro de voz com privacidade e contexto.",
+  description: "Conheça o VoiceStream: missão, valores, equipe e história. Redefindo o registro de voz com privacidade e contexto.",
   alternates: { canonical: "/about" },
   openGraph: { url: "/about" },
 };
@@ -69,7 +69,7 @@ const timeline: TimelineEvent[] = [
     year: "2024",
     month: "Jan",
     title: "Exploração de Oportunidade",
-    description: "Identificamos um padrão em profissionais: a necessidade de manter contextos separados enquanto registram conversas. CloudVoice nasce da pergunta: e se a voz fosse organizada como o pensamento?",
+    description: "Identificamos um padrão em profissionais: a necessidade de manter contextos separados enquanto registram conversas. VoiceStream nasce da pergunta: e se a voz fosse organizada como o pensamento?",
   },
   {
     year: "2024",
@@ -99,13 +99,13 @@ const timeline: TimelineEvent[] = [
     year: "2026",
     month: "Jun",
     title: "Disponibilidade Geral",
-    description: "CloudVoice sai do beta. Suporte para SSO, relatórios avançados e API de terceiros ao vivo.",
+    description: "VoiceStream sai do beta. Suporte para SSO, relatórios avançados e API de terceiros ao vivo.",
   },
 ];
 
 const pressOutlets = [
   { name: "TechCrunch Brasil", role: "A startup que quer reimaginar como as empresas capturam ideias" },
-  { name: "Startups.com.br", role: "CloudVoice levanta R$2M em seed para revolucionar capturas de voz" },
+  { name: "Startups.com.br", role: "VoiceStream levanta R$2M em seed para revolucionar capturas de voz" },
   { name: "Pequenas Empresas & Grandes Negócios", role: "Ferramenta gratuita ajuda profissionais a organizar anotações em voz" },
 ];
 
@@ -133,7 +133,7 @@ export default function AboutPage() {
             <span className="gradient-text">em voz</span>
           </h1>
           <p className="mx-auto mt-4 max-w-2xl text-lg text-muted-foreground">
-            CloudVoice reimagina como profissionais e equipes capturam, organizam e executam ideias a partir de conversas. Privacidade, contexto e simplicidade em primeiro lugar.
+            VoiceStream reimagina como profissionais e equipes capturam, organizam e executam ideias a partir de conversas. Privacidade, contexto e simplicidade em primeiro lugar.
           </p>
         </div>
       </section>
@@ -259,7 +259,7 @@ export default function AboutPage() {
             Mencionado pela <span className="gradient-text">mídia</span>
           </h2>
           <p className="mx-auto mt-3 max-w-2xl text-center text-muted-foreground">
-            Confira o que analistas e jornalistas têm dito sobre CloudVoice.
+            Confira o que analistas e jornalistas têm dito sobre VoiceStream.
           </p>
 
           <div className="mt-10 grid gap-4 sm:grid-cols-3">
@@ -275,9 +275,9 @@ export default function AboutPage() {
           </div>
 
           <div className="mt-8 text-center">
-            <p className="text-sm text-muted-foreground">Tem uma pergunta sobre CloudVoice?</p>
+            <p className="text-sm text-muted-foreground">Tem uma pergunta sobre VoiceStream?</p>
             <Link
-              href="mailto:imprensa@cloudvoice.com.br"
+              href="mailto:imprensa@voicestream.com.br"
               className="mt-2 inline-flex items-center text-sm font-semibold text-brand hover:text-brand-hover transition-colors"
             >
               Fale com nossa equipe de imprensa →

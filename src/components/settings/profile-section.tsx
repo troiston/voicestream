@@ -12,7 +12,7 @@ import { toast } from "sonner";
 export function ProfileSection() {
   const [displayName, setDisplayName] = useState("Ana Silva");
   const [phone, setPhone] = useState("+351 912 345 678");
-  const [bio, setBio] = useState("Product Manager @ CloudVoice");
+  const [bio, setBio] = useState("Product Manager @ VoiceStream");
   const [isSaving, setIsSaving] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);

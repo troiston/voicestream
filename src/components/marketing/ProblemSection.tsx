@@ -25,7 +25,7 @@ const solutions = [
   {
     title: "Memória estruturada por Espaço",
     description:
-      "CloudVoice extrai automaticamente o que importa de cada conversa — orientações, combinados, próximos passos — organizados por contexto.",
+      "VoiceStream extrai automaticamente o que importa de cada conversa — orientações, combinados, próximos passos — organizados por contexto.",
   },
   {
     title: "Isolamento de dados com privacidade",
@@ -35,7 +35,7 @@ const solutions = [
   {
     title: "De transcrição a ação em um só lugar",
     description:
-      "CloudVoice gera resumos, extrai decisões e cria tarefas. Tudo pronto para você agir — em reunião, na consulta, em casa.",
+      "VoiceStream gera resumos, extrai decisões e cria tarefas. Tudo pronto para você agir — em reunião, na consulta, em casa.",
   },
 ]
 
@@ -72,7 +72,7 @@ export function ProblemSection() {
           <span className="gradient-text">a memória não dá conta sozinha</span>
         </h2>
         <p className="mx-auto mt-4 max-w-2xl text-center text-lg text-muted-foreground">
-          CloudVoice grava, transcreve, resume e aterra em ações por Espaço, com privacidade
+          VoiceStream grava, transcreve, resume e aterra em ações por Espaço, com privacidade
           separada entre vida pessoal, família, saúde e trabalho.
         </p>
 
@@ -112,7 +112,7 @@ export function ProblemSection() {
           {/* Solutions column */}
           <div>
             <h3 className="text-lg font-semibold mb-6 text-center sm:text-left">
-              Depois: O que CloudVoice oferece
+              Depois: O que VoiceStream oferece
             </h3>
             <motion.div
               className="space-y-4"

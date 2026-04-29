@@ -29,7 +29,7 @@ export function mockUserFromEmail(email: string, nameOverride?: string): MockUse
     id: idFromEmail(e),
     email: e,
     name,
-    emailVerified: e.includes("+verified@") || e.endsWith("@cloudvoice.local"),
+    emailVerified: e.includes("+verified@") || e.endsWith("@voicestream.local"),
   };
 }
 

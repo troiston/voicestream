@@ -58,7 +58,7 @@ export function Hero() {
           className="mx-auto mt-6 max-w-2xl text-lg text-muted-foreground sm:text-xl leading-relaxed"
         >
           Grave, transcreva e resuma o que importa — no trabalho, na família e na saúde.
-          CloudVoice transforma fala em memória, decisões e tarefas com privacidade por contexto.
+          VoiceStream transforma fala em memória, decisões e tarefas com privacidade por contexto.
         </motion.p>
 
         {/* CTAs */}
@@ -96,7 +96,7 @@ export function Hero() {
         <div
           className="aspect-[16/9] overflow-hidden rounded-[var(--radius-2xl)] border border-border/40 bg-surface-1 shadow-2xl"
           role="img"
-          aria-label="Pré-visualização da interface CloudVoice mostrando captura de áudio, transcrição e tarefas"
+          aria-label="Pré-visualização da interface VoiceStream mostrando captura de áudio, transcrição e tarefas"
         >
           {/* Top bar */}
           <div className="flex h-9 items-center justify-between border-b border-border/40 bg-surface-2/50 px-4">
@@ -106,7 +106,7 @@ export function Hero() {
               <span className="h-2.5 w-2.5 rounded-full bg-[oklch(70%_0.18_140)]" />
             </div>
             <span className="text-[10px] font-medium tracking-widest text-muted-foreground/70 uppercase">
-              cloudvoice.com.br · Espaço Trabalho
+              voicestream.com.br · Espaço Trabalho
             </span>
             <span className="h-5 w-12 rounded-sm bg-surface-3/50" />
           </div>

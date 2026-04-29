@@ -32,7 +32,7 @@ const testimonials = [
   },
   {
     quote:
-      "Nas reuniões de gestão, CloudVoice já extrai os pontos-chave automaticamente. Ganhei horas que antes gastava relendo anotações e procurando decisões.",
+      "Nas reuniões de gestão, VoiceStream já extrai os pontos-chave automaticamente. Ganhei horas que antes gastava relendo anotações e procurando decisões.",
     author: "Fernando Silva",
     role: "Diretor de Operações",
     company: "Grupo Inovação",
@@ -50,7 +50,7 @@ const testimonials = [
   },
   {
     quote:
-      "Trabalho remoto entre fusos horários. CloudVoice me permite gravar síncronos e depois rever nos horários que fazem sentido — com resumos prontos.",
+      "Trabalho remoto entre fusos horários. VoiceStream me permite gravar síncronos e depois rever nos horários que fazem sentido — com resumos prontos.",
     author: "Lucas Oliveira",
     role: "Engenheiro de software",
     company: "TechGlobal",

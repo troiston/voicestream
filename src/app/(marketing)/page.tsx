@@ -11,7 +11,7 @@ import { Testimonials } from "@/components/marketing/Testimonials";
 import { JsonLd, breadcrumbListJsonLd } from "@/components/seo/jsonld";
 
 export const metadata: Metadata = {
-  title: "CloudVoice — Copiloto de vida por Espaços",
+  title: "VoiceStream — Copiloto de vida por Espaços",
   description:
     "Capture conversas, gere resumos e ações em Espaços para cada contexto da sua vida — trabalho, família, saúde — com privacidade por contexto.",
   alternates: {

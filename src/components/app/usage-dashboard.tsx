@@ -102,7 +102,7 @@ export function UsageDashboard({
     const url = URL.createObjectURL(csvBlob)
     const a = document.createElement("a")
     a.href = url
-    a.download = `cloudvoice-uso-${period}-mock.csv`
+    a.download = `voicestream-uso-${period}-mock.csv`
     a.click()
     URL.revokeObjectURL(url)
   }, [csvBlob, period])

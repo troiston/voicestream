@@ -19,15 +19,15 @@ const toc = [
 export const metadata: Metadata = {
   title: "Termos de Uso",
   description:
-    "Termos de Uso do CloudVoice: definições, utilização do serviço, contas, pagamentos, limites, propriedade intelectual, rescisão e lei aplicável.",
+    "Termos de Uso do VoiceStream: definições, utilização do serviço, contas, pagamentos, limites, propriedade intelectual, rescisão e lei aplicável.",
   alternates: {
     canonical: "/terms",
   },
   openGraph: {
     url: "/terms",
-    title: "Termos de Uso | CloudVoice",
+    title: "Termos de Uso | VoiceStream",
     description:
-      "Condições gerais de utilização da plataforma CloudVoice (captura de voz, Espaços, transcrição e tarefas).",
+      "Condições gerais de utilização da plataforma VoiceStream (captura de voz, Espaços, transcrição e tarefas).",
   },
 };
 
@@ -54,8 +54,8 @@ export default function TermsPage() {
       </p>
       <p className="mt-4 text-sm leading-relaxed text-muted-foreground">
         Estes Termos de Uso («Termos») regulam o acesso e a utilização do website, aplicações e
-        serviços associados da marca CloudVoice («Serviço»), operados pela entidade indicada no
-        website ou no contrato de prestação de serviços («nós», «nos» ou «CloudVoice»). Ao criar
+        serviços associados da marca VoiceStream («Serviço»), operados pela entidade indicada no
+        website ou no contrato de prestação de serviços («nós», «nos» ou «VoiceStream»). Ao criar
         conta, subscrever um plano ou utilizar o Serviço, aceita ficar vinculado a estes Termos. Se
         não concordar, não utilize o Serviço.
       </p>
@@ -106,7 +106,7 @@ export default function TermsPage() {
             2. Serviço e aceitação
           </h2>
           <p className="mt-4">
-            O CloudVoice oferece ferramentas para captar voz, transcrever, resumir e transformar
+            O VoiceStream oferece ferramentas para captar voz, transcrever, resumir e transformar
             informação em tarefas ou fluxos de trabalho, incluindo compartilhamento em equipe quando
             ativada. O Serviço é fornecido «tal como está» e «conforme disponível», salvo garantias
             legais imperativas não excluíveis.
@@ -132,8 +132,8 @@ export default function TermsPage() {
           <p className="mt-4">
             O Serviço não se destina a menores de 16 anos (ou idade superior exigida na sua
             jurisdição). Se tiver conhecimento de registo por menor, contacte{" "}
-            <a className="text-brand hover:text-brand-hover underline transition-colors" href="mailto:privacidade@cloudvoice.com.br">
-              privacidade@cloudvoice.com.br
+            <a className="text-brand hover:text-brand-hover underline transition-colors" href="mailto:privacidade@voicestream.com.br">
+              privacidade@voicestream.com.br
             </a>
             .
           </p>
@@ -184,7 +184,7 @@ export default function TermsPage() {
             6. Propriedade intelectual
           </h2>
           <p className="mt-4">
-            Entre si e a CloudVoice, mantém a titularidade sobre o seu Conteúdo do usuário.
+            Entre si e a VoiceStream, mantém a titularidade sobre o seu Conteúdo do usuário.
             Concede-nos uma licença não exclusiva, mundial e revogável, estritamente necessária para
             operar, melhorar e proteger o Serviço (por exemplo alojamento, processamento de voz e
             texto, cópias de segurança e prevenção de abuso), nos termos da{" "}
@@ -195,7 +195,7 @@ export default function TermsPage() {
           </p>
           <p className="mt-4">
             O software, marcas, design, documentação e restantes elementos do Serviço pertencem à
-            CloudVoice ou aos seus licenciadores. Não adquire qualquer direito sobre esses elementos
+            VoiceStream ou aos seus licenciadores. Não adquire qualquer direito sobre esses elementos
             para além da licença limitada de utilização do Serviço conforme estes Termos.
           </p>
         </section>
@@ -232,8 +232,8 @@ export default function TermsPage() {
           </p>
           <p className="mt-4">
             Questões sobre estes Termos:{" "}
-            <a className="text-brand hover:text-brand-hover underline transition-colors" href="mailto:legal@cloudvoice.com.br">
-              legal@cloudvoice.com.br
+            <a className="text-brand hover:text-brand-hover underline transition-colors" href="mailto:legal@voicestream.com.br">
+              legal@voicestream.com.br
             </a>
             .
           </p>

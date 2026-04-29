@@ -6,9 +6,9 @@ import { ChevronDown } from "lucide-react";
 
 const faqs = [
   {
-    question: "O que é o CloudVoice?",
+    question: "O que é o VoiceStream?",
     answer:
-      "O CloudVoice é o seu copiloto de vida: escuta o que importa em cada contexto e transforma fala em memória, decisões e tarefas, organizadas por Espaços. Funciona tanto no trabalho quanto na vida pessoal, família, saúde ou finanças.",
+      "O VoiceStream é o seu copiloto de vida: escuta o que importa em cada contexto e transforma fala em memória, decisões e tarefas, organizadas por Espaços. Funciona tanto no trabalho quanto na vida pessoal, família, saúde ou finanças.",
   },
   {
     question: "O que são Espaços?",
@@ -33,12 +33,12 @@ const faqs = [
   {
     question: "Posso integrar com outras ferramentas?",
     answer:
-      "Sim. CloudVoice oferece integração com calendários, aplicativos de tarefas e plataformas de produtividade. Cada Espaço pode ter suas próprias integrações sem interferir nos outros contextos.",
+      "Sim. VoiceStream oferece integração com calendários, aplicativos de tarefas e plataformas de produtividade. Cada Espaço pode ter suas próprias integrações sem interferir nos outros contextos.",
   },
   {
     question: "A transcrição funciona em português?",
     answer:
-      "Sim, CloudVoice foi treinado com modelo de fala otimizado para português brasileiro e europeu. Reconhece tons, sotaques e termos técnicos comuns em cada contexto.",
+      "Sim, VoiceStream foi treinado com modelo de fala otimizado para português brasileiro e europeu. Reconhece tons, sotaques e termos técnicos comuns em cada contexto.",
   },
   {
     question: "Posso compartilhar um Espaço com outras pessoas?",

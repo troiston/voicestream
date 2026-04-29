@@ -77,7 +77,7 @@ export function getPostBySlug(slug: string): BlogPost | null {
   const title = data.title ?? slug;
   const description = data.description ?? "";
   const date = data.date ?? "";
-  const author = data.author ?? "Equipa CloudVoice";
+  const author = data.author ?? "Equipa VoiceStream";
   const category = data.category ?? "Produto";
   const tags = splitTags(data.tags ?? "");
   const coverImage = data.coverImage ?? "/brand/logos/logo-01.png";

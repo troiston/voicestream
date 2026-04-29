@@ -3,7 +3,7 @@ import type { Metadata } from "next"
 import Link from "next/link"
 import { CheckCircle } from "lucide-react"
 import { ThemeToggle } from "@/components/ui/theme-toggle"
-import { CloudVoiceLogo } from "@/components/brand/cloud-voice-logo"
+import { VoiceStreamLogo } from "@/components/brand/voice-stream-logo"
 
 export const metadata: Metadata = {
   robots: { index: false, follow: false },
@@ -23,15 +23,15 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
         {/* Top: Logo */}
         <div>
           <Link href="/" className="inline-flex items-center">
-            <CloudVoiceLogo size="md" priority showWordmark={false} />
+            <VoiceStreamLogo size="md" priority showWordmark={false} />
           </Link>
-          <p className="mt-2 gradient-text text-xl font-bold">CloudVoice</p>
+          <p className="mt-2 gradient-text text-xl font-bold">VoiceStream</p>
         </div>
 
         {/* Middle: Testimonial */}
         <div className="glass-card rounded-[var(--radius-2xl)] p-6 space-y-4">
           <blockquote className="italic text-foreground/80 leading-relaxed">
-            &ldquo;O CloudVoice transformou como nossa equipe captura e organiza ideias. Economizamos horas por semana.&rdquo;
+            &ldquo;O VoiceStream transformou como nossa equipe captura e organiza ideias. Economizamos horas por semana.&rdquo;
           </blockquote>
           <div className="flex items-center gap-3">
             <div className="h-8 w-8 rounded-full bg-brand/20 flex items-center justify-center text-xs font-semibold text-brand">
@@ -65,7 +65,7 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
         {/* Logo only on mobile */}
         <div className="mb-8 lg:hidden">
           <Link href="/" className="inline-flex items-center">
-            <CloudVoiceLogo size="md" priority />
+            <VoiceStreamLogo size="md" priority />
           </Link>
         </div>
 

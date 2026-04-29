@@ -4,9 +4,9 @@ import { notFound, redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 
-const DEMO_EMAIL = "demo@cloudvoice.app";
+const DEMO_EMAIL = "demo@voicestream.app";
 const DEMO_NAME = "Demo Enterprise";
-const DEMO_PASSWORD = "demo-cloudvoice-2026";
+const DEMO_PASSWORD = "demo-voicestream-2026";
 
 /**
  * Login automático para conta de demonstração.
