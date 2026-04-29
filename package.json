@@ -22,12 +22,15 @@
     "lhci": "npx --yes @lhci/cli autorun 2>/dev/null || true",
     "db:seed": "prisma db seed",
     "db:demo:wipe": "tsx prisma/wipe-demo.ts",
+    "storage:ensure-bucket": "tsx src/lib/storage/ensure-bucket.ts",
     "verify": "bash scripts/verify-docs.sh && bash scripts/verify-framework.sh && bash scripts/verify-docs-integrity.sh && node scripts/verify-command-skills.mjs"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1039.0",
+    "@aws-sdk/s3-request-presigner": "^3.1039.0",
     "@base-ui/react": "^1.4.1",
     "@prisma/adapter-pg": "^7.7.0",
     "@prisma/adapter-pg-worker": "^6.9.0",
