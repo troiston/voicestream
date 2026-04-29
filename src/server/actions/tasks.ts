@@ -2,12 +2,18 @@
 
 import { z } from "zod";
 
-import type { MockTask, TaskPriority } from "@/lib/mocks/tasks";
+import { requireSession } from "@/features/auth/guards";
+import { db } from "@/lib/db";
+import type { TaskListItem } from "@/types/domain";
+import type { TaskStatus, TaskPriority } from "@/generated/prisma/client";
 
 export type CreateTaskActionState =
   | { status: "idle" }
-  | { status: "success"; task: MockTask }
+  | { status: "success"; task: TaskListItem }
   | { status: "error"; formErrors: Record<string, string[]>; message?: string };
+
+export type UpdateTaskStatusActionResult = { ok: true } | { ok: false; error: string };
+export type DeleteTaskActionResult = { ok: true } | { ok: false; error: string };
 
 function fdStr(v: FormDataEntryValue | null): string {
   return typeof v === "string" ? v : "";
@@ -26,55 +32,169 @@ const createTaskSchema = z.object({
     }),
 });
 
-const sleep = (ms: number) =>
-  new Promise<void>((resolve) => {
-    setTimeout(() => {
-      resolve();
-    }, ms);
-  });
-
-function newId(): string {
-  return `t_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
-}
-
 export async function createTaskAction(
   _prev: CreateTaskActionState,
   formData: FormData,
+  defaultSpaceId: string | null,
+  userId: string,
 ): Promise<CreateTaskActionState> {
-  const honeypot = formData.get("company");
-  if (typeof honeypot === "string" && honeypot.trim().length > 0) {
-    return { status: "error", formErrors: {}, message: "Pedido rejeitado (mock anti-spam)." };
-  }
+  try {
+    const session = await requireSession();
+    if (session.userId !== userId) {
+      return { status: "error", formErrors: {}, message: "Não autorizado." };
+    }
 
-  const statusRaw = fdStr(formData.get("status"));
-  const statusNorm = statusRaw === "em_curso" ? "em_curso" : "pendente";
+    if (!defaultSpaceId) {
+      return { status: "error", formErrors: {}, message: "Nenhum espaço disponível para criar tarefa." };
+    }
 
-  const parsed = createTaskSchema.safeParse({
-    title: fdStr(formData.get("title")),
-    description: fdStr(formData.get("description")),
-    priority: fdStr(formData.get("priority")),
-    status: statusNorm,
-    dueAt: fdStr(formData.get("dueAt")),
-  });
+    const honeypot = formData.get("company");
+    if (typeof honeypot === "string" && honeypot.trim().length > 0) {
+      return { status: "error", formErrors: {}, message: "Pedido rejeitado." };
+    }
 
-  if (!parsed.success) {
+    const statusRaw = fdStr(formData.get("status"));
+    const statusNorm = (statusRaw === "em_curso" ? "em_curso" : "pendente") as TaskStatus;
+
+    const parsed = createTaskSchema.safeParse({
+      title: fdStr(formData.get("title")),
+      description: fdStr(formData.get("description")),
+      priority: fdStr(formData.get("priority")),
+      status: statusNorm,
+      dueAt: fdStr(formData.get("dueAt")),
+    });
+
+    if (!parsed.success) {
+      return {
+        status: "error",
+        formErrors: parsed.error.flatten().fieldErrors as Record<string, string[]>,
+      };
+    }
+
+    const dueDate = parsed.data.dueAt === "" ? null : new Date(`${parsed.data.dueAt}T00:00:00Z`);
+
+    const createdTask = await db.task.create({
+      data: {
+        spaceId: defaultSpaceId,
+        creatorUserId: session.userId,
+        title: parsed.data.title,
+        description: parsed.data.description,
+        status: statusNorm,
+        priority: parsed.data.priority,
+        dueAt: dueDate,
+      },
+      include: {
+        space: { select: { name: true } },
+        recording: { select: { title: true, capturedAt: true } },
+      },
+    });
+
+    const task: TaskListItem = {
+      id: createdTask.id,
+      title: createdTask.title,
+      description: createdTask.description,
+      status: createdTask.status,
+      priority: createdTask.priority,
+      dueAt: createdTask.dueAt ? createdTask.dueAt.toISOString().split("T")[0] : null,
+      spaceId: createdTask.spaceId,
+      spaceName: createdTask.space.name,
+      recordingId: createdTask.recordingId,
+      recordingTitle: createdTask.recording?.title ?? null,
+      recordingCapturedAt: createdTask.recording?.capturedAt
+        ? createdTask.recording.capturedAt.toISOString().split("T")[0]
+        : null,
+    };
+
+    return { status: "success", task };
+  } catch (error) {
+    console.error("createTaskAction error:", error);
     return {
       status: "error",
-      formErrors: parsed.error.flatten().fieldErrors as Record<string, string[]>,
+      formErrors: {},
+      message: "Erro ao criar tarefa. Tente novamente.",
     };
   }
+}
 
-  await sleep(380);
+export async function updateTaskStatusAction(
+  taskId: string,
+  newStatus: TaskStatus,
+): Promise<UpdateTaskStatusActionResult> {
+  try {
+    const session = await requireSession();
 
-  const due = parsed.data.dueAt === "" ? null : parsed.data.dueAt;
-  const task: MockTask = {
-    id: newId(),
-    title: parsed.data.title,
-    description: parsed.data.description,
-    priority: parsed.data.priority,
-    status: parsed.data.status,
-    dueAt: due,
-  };
+    // Verify user is creator or space owner/member
+    const task = await db.task.findUnique({
+      where: { id: taskId },
+      select: { creatorUserId: true, spaceId: true },
+    });
 
-  return { status: "success", task };
+    if (!task) {
+      return { ok: false, error: "Tarefa não encontrada." };
+    }
+
+    const isCreator = task.creatorUserId === session.userId;
+    const spaceMember = await db.spaceMember.findUnique({
+      where: { spaceId_userId: { spaceId: task.spaceId, userId: session.userId } },
+      select: { role: true },
+    });
+    const isSpaceOwnerOrMember =
+      (spaceMember && (spaceMember.role === "owner" || spaceMember.role === "admin")) ||
+      (await db.space.findUnique({
+        where: { id: task.spaceId },
+        select: { ownerId: true },
+      }).then((s) => s?.ownerId === session.userId));
+
+    if (!isCreator && !isSpaceOwnerOrMember) {
+      return { ok: false, error: "Não autorizado." };
+    }
+
+    const completedAt = newStatus === "concluida" ? new Date() : null;
+
+    await db.task.update({
+      where: { id: taskId },
+      data: { status: newStatus, completedAt },
+    });
+
+    return { ok: true };
+  } catch (error) {
+    console.error("updateTaskStatusAction error:", error);
+    return { ok: false, error: "Erro ao atualizar tarefa." };
+  }
+}
+
+export async function deleteTaskAction(taskId: string): Promise<DeleteTaskActionResult> {
+  try {
+    const session = await requireSession();
+
+    // Verify user is creator or space owner
+    const task = await db.task.findUnique({
+      where: { id: taskId },
+      select: { creatorUserId: true, spaceId: true },
+    });
+
+    if (!task) {
+      return { ok: false, error: "Tarefa não encontrada." };
+    }
+
+    const isCreator = task.creatorUserId === session.userId;
+    const spaceOwner = await db.space.findUnique({
+      where: { id: task.spaceId },
+      select: { ownerId: true },
+    });
+    const isSpaceOwner = spaceOwner?.ownerId === session.userId;
+
+    if (!isCreator && !isSpaceOwner) {
+      return { ok: false, error: "Não autorizado." };
+    }
+
+    await db.task.delete({
+      where: { id: taskId },
+    });
+
+    return { ok: true };
+  } catch (error) {
+    console.error("deleteTaskAction error:", error);
+    return { ok: false, error: "Erro ao deletar tarefa." };
+  }
 }

@@ -13,11 +13,12 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Trash2, Check } from "lucide-react";
-import type { MockTask, TaskStatus, TaskPriority } from "@/lib/mocks/tasks";
+import type { TaskListItem } from "@/types/domain";
+import type { TaskStatus, TaskPriority } from "@/generated/prisma/client";
 import { cn } from "@/lib/utils";
 
 interface TasksTableProps {
-  filteredTasks: MockTask[];
+  filteredTasks: TaskListItem[];
   selected: Set<string>;
   onSelectTask: (id: string) => void;
   onSelectAll: () => void;

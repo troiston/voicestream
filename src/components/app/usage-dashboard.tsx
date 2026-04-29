@@ -10,17 +10,19 @@ import { cn } from "@/lib/utils"
 import type { IntentCount, SpaceUse, UsagePoint } from "@/lib/mocks/usage"
 
 export interface UsageDashboardProps {
-  series7d: readonly UsagePoint[]
-  series30d: readonly UsagePoint[]
-  topIntents: readonly IntentCount[]
-  topSpaces: readonly SpaceUse[]
+  series7d: UsagePoint[]
+  series30d: UsagePoint[]
+  topIntents: IntentCount[]
+  topSpaces: SpaceUse[]
+  subscriptionLimit?: number
+  subscriptionUsed?: number
 }
 
-function maxMinutes(points: readonly UsagePoint[]): number {
+function maxMinutes(points: UsagePoint[]): number {
   return points.reduce((m, p) => (p.minutes > m ? p.minutes : m), 1)
 }
 
-function UsageBarChart({ points }: { points: readonly UsagePoint[] }) {
+function UsageBarChart({ points }: { points: UsagePoint[] }) {
   const max = maxMinutes(points)
   return (
     <div
@@ -57,9 +59,9 @@ function UsageBarChart({ points }: { points: readonly UsagePoint[] }) {
 
 function buildUsageCsv(
   periodLabel: string,
-  points: readonly UsagePoint[],
-  intents: readonly IntentCount[],
-  spaces: readonly SpaceUse[],
+  points: UsagePoint[],
+  intents: IntentCount[],
+  spaces: SpaceUse[],
 ): string {
   const lines: string[] = [
     "secção,chave,valor",
@@ -83,6 +85,8 @@ export function UsageDashboard({
   series30d,
   topIntents,
   topSpaces,
+  subscriptionLimit = 200,
+  subscriptionUsed = 0,
 }: UsageDashboardProps) {
   const [period, setPeriod] = useState<"7d" | "30d">("7d")
   const points = period === "7d" ? series7d : series30d
@@ -102,10 +106,12 @@ export function UsageDashboard({
     const url = URL.createObjectURL(csvBlob)
     const a = document.createElement("a")
     a.href = url
-    a.download = `voicestream-uso-${period}-mock.csv`
+    a.download = `voicestream-uso-${period}.csv`
     a.click()
     URL.revokeObjectURL(url)
   }, [csvBlob, period])
+
+  const subscriptionPercent = Math.round((subscriptionUsed / subscriptionLimit) * 100)
 
   return (
     <div className="space-y-6">
@@ -167,10 +173,12 @@ export function UsageDashboard({
         </Card>
         <Card className="bg-surface-1 border border-border/60">
           <CardContent className="p-5">
-            <p className="text-xs font-medium text-muted-foreground">Intents capturadas</p>
+            <p className="text-xs font-medium text-muted-foreground">Plano - Limite</p>
             <p className="mt-1 text-3xl font-bold tracking-tight">
-              {topIntents.reduce((s, i) => s + i.count, 0)}
-              <span className="ml-1 text-sm font-normal text-muted-foreground">total</span>
+              {subscriptionUsed}
+              <span className="ml-1 text-sm font-normal text-muted-foreground">
+                / {subscriptionLimit} min
+              </span>
             </p>
           </CardContent>
         </Card>
@@ -199,28 +207,34 @@ export function UsageDashboard({
             </div>
           </CardHeader>
           <CardContent className="px-5 pb-5 space-y-3">
-            {topIntents.map((row, i) => {
-              const max = topIntents[0]?.count ?? 1
-              const w = Math.round((row.count / max) * 100)
-              return (
-                <div key={row.intent}>
-                  <div className="flex justify-between text-sm">
-                    <span className="font-medium">{row.intent}</span>
-                    <span className="text-muted-foreground tabular-nums">{row.count}</span>
+            {topIntents.length > 0 ? (
+              topIntents.map((row, i) => {
+                const max = topIntents[0]?.count ?? 1
+                const w = Math.round((row.count / max) * 100)
+                return (
+                  <div key={row.intent}>
+                    <div className="flex justify-between text-sm">
+                      <span className="font-medium">{row.intent}</span>
+                      <span className="text-muted-foreground tabular-nums">{row.count}</span>
+                    </div>
+                    <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-surface-3">
+                      <div
+                        className="h-full rounded-full transition-[width] duration-500"
+                        style={{
+                          width: `${w}%`,
+                          background: `linear-gradient(90deg, var(--grad-from), var(--grad-to))`,
+                        }}
+                      />
+                    </div>
+                    <span className="sr-only">Posição {i + 1} de {topIntents.length}</span>
                   </div>
-                  <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-surface-3">
-                    <div
-                      className="h-full rounded-full transition-[width] duration-500"
-                      style={{
-                        width: `${w}%`,
-                        background: `linear-gradient(90deg, var(--grad-from), var(--grad-to))`,
-                      }}
-                    />
-                  </div>
-                  <span className="sr-only">Posição {i + 1} de {topIntents.length}</span>
-                </div>
-              )
-            })}
+                )
+              })
+            ) : (
+              <p className="text-sm text-muted-foreground py-2">
+                Nenhum intent capturado ainda. (TODO: implementar NLP real)
+              </p>
+            )}
           </CardContent>
         </Card>
 
@@ -232,25 +246,31 @@ export function UsageDashboard({
             </div>
           </CardHeader>
           <CardContent className="px-5 pb-5 space-y-3">
-            {topSpaces.map((row, i) => {
-              const max = topSpaces[0]?.minutes ?? 1
-              const w = Math.round((row.minutes / max) * 100)
-              return (
-                <div key={row.space}>
-                  <div className="flex justify-between text-sm">
-                    <span className="font-medium">{row.space}</span>
-                    <Badge variant="muted">{row.minutes} min</Badge>
+            {topSpaces.length > 0 ? (
+              topSpaces.map((row, i) => {
+                const max = topSpaces[0]?.minutes ?? 1
+                const w = Math.round((row.minutes / max) * 100)
+                return (
+                  <div key={row.space}>
+                    <div className="flex justify-between text-sm">
+                      <span className="font-medium">{row.space}</span>
+                      <Badge variant="muted">{row.minutes} min</Badge>
+                    </div>
+                    <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-surface-3">
+                      <div
+                        className="h-full rounded-full bg-brand/50 transition-[width] duration-500"
+                        style={{ width: `${w}%` }}
+                      />
+                    </div>
+                    <span className="sr-only">Posição {i + 1} de {topSpaces.length}</span>
                   </div>
-                  <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-surface-3">
-                    <div
-                      className="h-full rounded-full bg-brand/50 transition-[width] duration-500"
-                      style={{ width: `${w}%` }}
-                    />
-                  </div>
-                  <span className="sr-only">Posição {i + 1} de {topSpaces.length}</span>
-                </div>
-              )
-            })}
+                )
+              })
+            ) : (
+              <p className="text-sm text-muted-foreground py-2">
+                Nenhum espaço com uso registrado
+              </p>
+            )}
           </CardContent>
         </Card>
       </div>

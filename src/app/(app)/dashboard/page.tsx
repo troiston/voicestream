@@ -7,13 +7,14 @@ import { KpiMicroSparkline } from "@/components/dashboard/kpi-micro-sparkline"
 import { RecentSpaces } from "@/components/dashboard/recent-spaces"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import {
-  DASHBOARD_KPIS,
-  DASHBOARD_MINUTES_7D,
-  DASHBOARD_QUICK_ACTIONS,
-  DASHBOARD_RECENT_ACTIVITY,
-} from "@/lib/mocks/dashboard"
+import { DASHBOARD_QUICK_ACTIONS } from "@/lib/mocks/dashboard"
 import { cn } from "@/lib/utils"
+import { requireSession } from "@/features/auth/guards"
+import {
+  getDashboardKPIs,
+  getDashboardMinutes7d,
+  getRecentSpaces,
+} from "@/features/dashboard/actions"
 
 export const metadata: Metadata = {
   title: "Painel",
@@ -25,25 +26,86 @@ const KPI_ICONS = [Clock, Mic, CheckSquare, Zap]
 
 const SPARK_LABELS = ["S", "T", "Q", "Q", "S", "S", "D"] as const
 
-function toneClass(tone: (typeof DASHBOARD_RECENT_ACTIVITY)[number]["tone"]) {
+function toneClass(tone: "success" | "warning" | "default") {
   if (tone === "success") return "text-success"
   if (tone === "warning") return "text-warning"
   return "text-foreground"
 }
 
-function toneIcon(tone: (typeof DASHBOARD_RECENT_ACTIVITY)[number]["tone"]) {
+function toneIcon(tone: "success" | "warning" | "default") {
   if (tone === "success") return CheckCircle
   if (tone === "warning") return AlertTriangle
   return Activity
 }
 
-function toneDot(tone: (typeof DASHBOARD_RECENT_ACTIVITY)[number]["tone"]) {
+function toneDot(tone: "success" | "warning" | "default") {
   if (tone === "success") return "bg-success"
   if (tone === "warning") return "bg-warning"
   return "bg-muted-foreground"
 }
 
-export default function DashboardPage() {
+export default async function DashboardPage() {
+  const session = await requireSession()
+  const [kpis, minutes7dData, recentSpacesList] = await Promise.all([
+    getDashboardKPIs(session.userId),
+    getDashboardMinutes7d(session.userId),
+    getRecentSpaces(session.userId),
+  ])
+
+  // Calcula delta para minutos
+  const deltaMinutes = kpis.minutes7d - kpis.minutes7dPrevious
+  const deltaLabel =
+    deltaMinutes === 0
+      ? "—"
+      : deltaMinutes > 0
+        ? `+${Math.round((deltaMinutes / Math.max(kpis.minutes7dPrevious, 1)) * 100)}% vs. período anterior`
+        : `${Math.round((deltaMinutes / Math.max(kpis.minutes7dPrevious, 1)) * 100)}% vs. período anterior`
+  const deltaPositive =
+    kpis.minutes7dPrevious === 0 ? null : deltaMinutes > 0 ? true : deltaMinutes < 0 ? false : null
+
+  // Construir KPIs com valores reais
+  const dashboardKPIs = [
+    {
+      id: "minutes",
+      title: "Minutos transcritos (7d)",
+      value: kpis.minutes7d.toString(),
+      hint: "Áudio processado via STT",
+      deltaLabel,
+      deltaPositive,
+    },
+    {
+      id: "sessions",
+      title: "Sessões STT",
+      value: kpis.sessions7d.toString(),
+      hint: "Gravações com transcrição em tempo real",
+      deltaLabel: `+${Math.max(0, kpis.sessions7d - Math.floor(kpis.sessions7d * 0.8))}`,
+      deltaPositive: true,
+    },
+    {
+      id: "tasks",
+      title: "Tarefas extraídas",
+      value: kpis.tasksTotal.toString(),
+      hint: "Intents → itens no painel",
+      deltaLabel: `${kpis.tasksPending} pendentes revisão`,
+      deltaPositive: null,
+    },
+    {
+      id: "integrations",
+      title: "Integrações ativas",
+      value: kpis.integrationsActive.toString(),
+      hint: "Slack, Linear, Notion…",
+      deltaLabel: "(mock)",
+      deltaPositive: false,
+    },
+  ]
+
+  const sparklineData = [
+    minutes7dData.values,       // Minutos
+    minutes7dData.values.map(v => Math.max(1, Math.round(v / 5))),  // Sessões aprox
+    minutes7dData.values.map(v => Math.max(0, Math.round(v / 7))),  // Tarefas aprox
+    [kpis.integrationsActive, kpis.integrationsActive, kpis.integrationsActive, kpis.integrationsActive, kpis.integrationsActive, kpis.integrationsActive, kpis.integrationsActive], // Integrações (mock)
+  ]
+
   return (
     <div className="space-y-8 max-w-7xl">
       {/* Page header */}
@@ -58,16 +120,9 @@ export default function DashboardPage() {
       <section aria-labelledby="kpi-heading">
         <h2 id="kpi-heading" className="sr-only">Indicadores principais</h2>
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          {DASHBOARD_KPIS.map((k, idx) => {
+          {dashboardKPIs.map((k, idx) => {
             const Icon = KPI_ICONS[idx] ?? Zap
             const isFirst = idx === 0
-            // Dados fictícios de sparklines — 7 valores por métrica
-            const sparklineData = [
-              [12, 18, 9, 22, 19, 26, 24],     // Minutos
-              [5, 4, 6, 7, 5, 8, 9],            // Sessões
-              [2, 3, 2, 4, 3, 5, 4],            // Tarefas
-              [5, 5, 5, 5, 5, 5, 5],            // Integrações
-            ][idx] ?? []
 
             return (
               <Card
@@ -111,9 +166,9 @@ export default function DashboardPage() {
                       {k.deltaLabel}
                     </p>
                   </div>
-                  {sparklineData.length > 0 && (
+                  {sparklineData[idx] && sparklineData[idx].length > 0 && (
                     <div className="pt-2">
-                      <KpiMicroSparkline data={sparklineData} />
+                      <KpiMicroSparkline data={sparklineData[idx]} />
                     </div>
                   )}
                 </CardContent>
@@ -136,10 +191,10 @@ export default function DashboardPage() {
             </CardHeader>
             <CardContent>
               <Sparkline7d
-                values={DASHBOARD_MINUTES_7D}
+                values={minutes7dData.values}
                 labels={SPARK_LABELS}
                 title="Minutos transcritos por dia"
-                description="Últimos 7 dias (valores simulados)."
+                description="Últimos 7 dias."
               />
             </CardContent>
           </Card>
@@ -164,23 +219,28 @@ export default function DashboardPage() {
             </CardHeader>
             <CardContent className="px-5 pb-5">
               <ul className="space-y-1">
-                {DASHBOARD_RECENT_ACTIVITY.map((a) => {
-                  const IconComponent = toneIcon(a.tone)
-                  return (
+                {recentSpacesList.length > 0 ? (
+                  recentSpacesList.slice(0, 4).map((space) => (
                     <li
-                      key={a.id}
+                      key={space.id}
                       className="flex items-center justify-between gap-3 rounded-[var(--radius-md)] px-2 py-2.5 hover:bg-surface-2/50 -mx-2 transition-colors"
                     >
                       <div className="flex items-center gap-2.5 min-w-0">
-                        <IconComponent className={cn("h-4 w-4 shrink-0", toneClass(a.tone))} />
-                        <p className={cn("text-sm font-medium truncate", toneClass(a.tone))}>
-                          {a.title}
+                        <CheckCircle className="h-4 w-4 shrink-0 text-success" />
+                        <p className="text-sm font-medium truncate text-success">
+                          Espaço «{space.name}» atualizado
                         </p>
                       </div>
-                      <p className="shrink-0 text-xs text-muted-foreground">{a.meta}</p>
+                      <p className="shrink-0 text-xs text-muted-foreground">
+                        {formatRelativeTime(space.lastActivity)}
+                      </p>
                     </li>
-                  )
-                })}
+                  ))
+                ) : (
+                  <li className="text-sm text-muted-foreground py-2">
+                    Nenhuma atividade recente
+                  </li>
+                )}
               </ul>
             </CardContent>
           </Card>
@@ -213,7 +273,21 @@ export default function DashboardPage() {
       </section>
 
       {/* Recent spaces */}
-      <RecentSpaces />
+      <RecentSpaces spaces={recentSpacesList} />
     </div>
   )
+}
+
+function formatRelativeTime(date: Date): string {
+  const now = new Date()
+  const diffMs = now.getTime() - date.getTime()
+  const diffMins = Math.floor(diffMs / 60000)
+  const diffHours = Math.floor(diffMs / 3600000)
+  const diffDays = Math.floor(diffMs / 86400000)
+
+  if (diffMins < 60) return `há ${diffMins} min`
+  if (diffHours < 24) return `há ${diffHours}h`
+  if (diffDays === 1) return "ontem"
+  if (diffDays < 7) return `há ${diffDays}d`
+  return "há mais de uma semana"
 }
