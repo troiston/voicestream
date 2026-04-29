@@ -22,11 +22,21 @@ model User {
   createdAt        DateTime    @default(now())
   updatedAt        DateTime    @updatedAt
 
+  preferences      Json?
+
   sessions      Session[]
   accounts      Account[]
   twofactors    TwoFactor[]
   subscriptions Subscription[]
   usage         Usage[]
+
+  ownedSpaces      Space[]        @relation("SpaceOwner")
+  spaceMemberships SpaceMember[]
+  recordings       Recording[]
+  createdTasks     Task[]         @relation("TaskCreator")
+  assignedTasks    Task[]         @relation("TaskAssignee")
+  auditLogs        AuditLog[]
+  spaceInvitesSent SpaceInvite[]
 
   @@index([isDemo])
   @@map("user")
@@ -125,4 +135,241 @@ model Usage {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, type, createdAt])
+}
+
+// ============================================================
+// VoiceStream domain
+// ============================================================
+
+enum SpaceKind {
+  trabalho
+  familia
+  saude
+  financas
+  pessoal
+  outros
+}
+
+enum SpaceMemberRole {
+  owner
+  admin
+  membro
+  convidado
+}
+
+enum SpaceMemberStatus {
+  pending
+  active
+  revoked
+}
+
+enum RecordingStatus {
+  uploaded
+  processing
+  transcribed
+  summarized
+  failed
+}
+
+enum TranscriptionProvider {
+  deepgram
+  whisper
+  other
+}
+
+enum TaskStatus {
+  pendente
+  em_curso
+  concluida
+  cancelada
+}
+
+enum TaskPriority {
+  baixa
+  media
+  alta
+}
+
+model Space {
+  id          String    @id @default(cuid())
+  ownerId     String
+  name        String
+  description String?
+  kind        SpaceKind
+  color       String?
+  icon        String?
+  isArchived  Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  owner      User          @relation("SpaceOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  members    SpaceMember[]
+  invites    SpaceInvite[]
+  recordings Recording[]
+  tasks      Task[]
+
+  @@index([ownerId])
+  @@index([kind])
+  @@map("space")
+}
+
+model SpaceMember {
+  id        String            @id @default(cuid())
+  spaceId   String
+  userId    String
+  role      SpaceMemberRole
+  invitedAt DateTime          @default(now())
+  joinedAt  DateTime?
+  status    SpaceMemberStatus @default(pending)
+
+  space Space @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([spaceId, userId])
+  @@index([userId])
+  @@index([spaceId, status])
+  @@map("space_member")
+}
+
+model SpaceInvite {
+  id              String          @id @default(cuid())
+  spaceId         String
+  invitedByUserId String
+  email           String
+  role            SpaceMemberRole
+  token           String          @unique
+  expiresAt       DateTime
+  acceptedAt      DateTime?
+  createdAt       DateTime        @default(now())
+
+  space     Space @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+  invitedBy User  @relation(fields: [invitedByUserId], references: [id], onDelete: Cascade)
+
+  @@index([spaceId])
+  @@index([email])
+  @@map("space_invite")
+}
+
+model Recording {
+  id           String          @id @default(cuid())
+  spaceId      String
+  userId       String
+  title        String?
+  storageKey   String          @unique
+  durationSec  Int
+  mimeType     String          @default("audio/webm")
+  language     String          @default("pt-BR")
+  status       RecordingStatus @default(uploaded)
+  errorMessage String?
+  capturedAt   DateTime
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+
+  space         Space          @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transcription Transcription?
+  summary       Summary?
+  tasks         Task[]
+
+  @@index([spaceId, capturedAt(sort: Desc)])
+  @@index([userId])
+  @@index([status])
+  @@map("recording")
+}
+
+model Transcription {
+  id           String                @id @default(cuid())
+  recordingId  String                @unique
+  provider     TranscriptionProvider
+  language     String
+  text         String                @db.Text
+  confidence   Float?
+  rawJson      Json?
+  createdAt    DateTime              @default(now())
+
+  recording Recording              @relation(fields: [recordingId], references: [id], onDelete: Cascade)
+  segments  TranscriptionSegment[]
+  summary   Summary?
+
+  @@index([recordingId])
+  @@map("transcription")
+}
+
+model TranscriptionSegment {
+  id              String  @id @default(cuid())
+  transcriptionId String
+  speaker         String?
+  startMs         Int
+  endMs           Int
+  text            String  @db.Text
+  confidence      Float?
+
+  transcription Transcription @relation(fields: [transcriptionId], references: [id], onDelete: Cascade)
+
+  @@index([transcriptionId, startMs])
+  @@map("transcription_segment")
+}
+
+model Summary {
+  id              String   @id @default(cuid())
+  recordingId     String   @unique
+  transcriptionId String   @unique
+  title           String?
+  abstract        String   @db.Text
+  decisions       String[]
+  nextSteps       String[]
+  llmModel        String   @default("claude-sonnet-4-6")
+  tokensInput     Int?
+  tokensOutput    Int?
+  createdAt       DateTime @default(now())
+
+  recording     Recording     @relation(fields: [recordingId], references: [id], onDelete: Cascade)
+  transcription Transcription @relation(fields: [transcriptionId], references: [id], onDelete: Cascade)
+
+  @@index([recordingId])
+  @@map("summary")
+}
+
+model Task {
+  id              String       @id @default(cuid())
+  spaceId         String
+  recordingId     String?
+  creatorUserId   String
+  assigneeUserId  String?
+  title           String
+  description     String       @db.Text
+  status          TaskStatus   @default(pendente)
+  priority        TaskPriority @default(media)
+  dueAt           DateTime?
+  completedAt     DateTime?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  space     Space      @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+  recording Recording? @relation(fields: [recordingId], references: [id], onDelete: SetNull)
+  creator   User       @relation("TaskCreator", fields: [creatorUserId], references: [id], onDelete: Cascade)
+  assignee  User?      @relation("TaskAssignee", fields: [assigneeUserId], references: [id], onDelete: SetNull)
+
+  @@index([spaceId, status])
+  @@index([assigneeUserId, status])
+  @@index([recordingId])
+  @@map("task")
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  userId     String?
+  action     String
+  entityType String?
+  entityId   String?
+  metadata   Json?
+  ipAddress  String?
+  userAgent  String?
+  createdAt  DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([action, createdAt(sort: Desc)])
+  @@map("audit_log")
 }

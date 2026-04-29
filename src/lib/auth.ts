@@ -5,6 +5,10 @@ import { twoFactor } from "better-auth/plugins";
 
 import { db } from "@/lib/db";
 import { env } from "@/lib/env";
+import {
+  sendVerificationEmail,
+  sendResetPasswordEmail,
+} from "@/lib/email/send-helpers";
 
 export const auth = betterAuth({
   database: prismaAdapter(db, { provider: "postgresql" }),
@@ -18,8 +22,7 @@ export const auth = betterAuth({
     minPasswordLength: 8,
     autoSignIn: true,
     sendResetPassword: async ({ user, url }) => {
-      // TODO Fase 1.C: enviar via Resend
-      console.warn("[auth] reset-password email pendente (Fase 1.C):", user.email, url);
+      await sendResetPasswordEmail(user.email, user.name ?? undefined, url);
     },
   },
 
@@ -27,8 +30,7 @@ export const auth = betterAuth({
     sendOnSignUp: true,
     autoSignInAfterVerification: true,
     sendVerificationEmail: async ({ user, url }) => {
-      // TODO Fase 1.C: enviar via Resend
-      console.warn("[auth] verify-email pendente (Fase 1.C):", user.email, url);
+      await sendVerificationEmail(user.email, user.name ?? undefined, url);
     },
   },
 
