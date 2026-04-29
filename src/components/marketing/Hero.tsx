@@ -152,7 +152,7 @@ export function Hero() {
                     <span
                       key={i}
                       className="w-1 rounded-sm bg-brand/60"
-                      style={{ height: `${20 + Math.abs(Math.sin(i * 0.6)) * 80}%` }}
+                      style={{ height: `${(20 + Math.abs(Math.sin(i * 0.6)) * 80).toFixed(2)}%` }}
                     />
                   ))}
                 </div>

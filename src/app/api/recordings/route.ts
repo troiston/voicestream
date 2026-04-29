@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { getSession } from "@/features/auth/session";
 import { headObject } from "@/lib/storage/seaweed";
 import { Prisma } from "@/generated/prisma/client";
+import { enqueueTranscribe } from "@/lib/queue";
 
 const bodySchema = z.object({
   spaceId: z.string().min(1, "spaceId é obrigatório"),
@@ -120,8 +121,13 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Erro interno" }, { status: 500 });
   }
 
-  // 6. TODO Fase 2.B: enfileirar job de transcrição
-  console.log("[recordings] TODO Fase 2.B: enfileirar transcrição", recording.id);
+  // 6. Enfileirar job de transcrição
+  try {
+    await enqueueTranscribe(recording.id);
+  } catch (e) {
+    // Não falhe a request por causa da queue (resiliência)
+    console.error("[recordings] enqueue failed", e);
+  }
 
   // AuditLog (resiliente)
   try {
