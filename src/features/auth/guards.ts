@@ -1,23 +1,21 @@
 import { redirect } from "next/navigation";
 
-import { getSession, type MockSession } from "@/features/auth/session";
+import { getSession, type AppSession } from "@/features/auth/session";
 
 type RequireSessionOptions = {
   nextPath?: string;
 };
 
 /**
- * Garante sessão mock. Redireciona para /login (com `next`) se não houver cookie.
+ * Garante sessão ativa. Redireciona para /login (com `next`) se não houver.
  */
 export async function requireSession(
   options?: RequireSessionOptions,
-): Promise<MockSession> {
+): Promise<AppSession> {
   const session = await getSession();
   if (!session) {
     const q = new URLSearchParams();
-    if (options?.nextPath) {
-      q.set("next", options.nextPath);
-    }
+    if (options?.nextPath) q.set("next", options.nextPath);
     const s = q.toString();
     redirect(s ? `/login?${s}` : "/login");
   }

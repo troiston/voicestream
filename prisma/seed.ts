@@ -29,7 +29,7 @@ const DEMO_USERS = [
 async function seedUser(email: string, name: string, plan: string) {
   const user = await prisma.user.upsert({
     where: { email },
-    create: { email, name, isDemo: true, emailVerified: new Date() },
+    create: { email, name, isDemo: true, emailVerified: true },
     update: { name, isDemo: true },
   });
 

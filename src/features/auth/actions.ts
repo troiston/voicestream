@@ -1,6 +1,8 @@
 "use server";
 
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
+import { APIError } from "better-auth/api";
 
 import {
   forgotPasswordSchema,
@@ -10,60 +12,18 @@ import {
   registerSchema,
   resetPasswordSchema,
 } from "@/features/auth/schemas";
-import { clearSession, getSession, setSession, type MockSession } from "@/features/auth/session";
-import { mockUserFromEmail } from "@/lib/mocks/users";
+import { auth } from "@/lib/auth";
 
 export type ActionResult<T> =
   | { ok: true; data: T }
   | { ok: false; formErrors?: Record<string, string[]>; message?: string };
-
-/** Evita inlining estático de `process.env.*` no bundle do servidor (Turbopack/Webpack). */
-function env(name: "E2E_DETERMINISTIC_AUTH" | "NODE_ENV"): string | undefined {
-  const proc = globalThis.process as { env?: Record<string, string | undefined> } | undefined;
-  return proc?.env?.[name];
-}
-
-function pickOutcome():
-  | "success"
-  | "conflict"
-  | "error" {
-  if (env("E2E_DETERMINISTIC_AUTH") === "1") {
-    return "success";
-  }
-  const r = Math.random();
-  if (r < 0.6) {
-    return "success";
-  }
-  if (r < 0.9) {
-    return "conflict";
-  }
-  return "error";
-}
-
-/**
- * Em `next dev`, emails usados pelos testes Playwright ignoram a aleatoriedade do mock
- * (útil quando `reuseExistingServer` não repõe `E2E_DETERMINISTIC_AUTH` no processo).
- * Nunca activo em produção.
- */
-function isPlaywrightDeterministicEmail(email: string): boolean {
-  if (env("NODE_ENV") === "production") {
-    return false;
-  }
-  const e = email.trim().toLowerCase();
-  if (e === "playwright@example.com") {
-    return true;
-  }
-  return /^pw-\d+@example\.com$/i.test(e);
-}
 
 /** Só redireciona na mesma origem (caminho relativo) — evita open redirect. */
 function safeRedirectPath(
   raw: string | null | FormDataEntryValue,
   fallback: string,
 ): string {
-  if (typeof raw !== "string" || raw.trim() === "") {
-    return fallback;
-  }
+  if (typeof raw !== "string" || raw.trim() === "") return fallback;
   const s = raw.trim();
   if (!s.startsWith("/") || s.startsWith("//") || s.includes("://") || s.includes("..")) {
     return fallback;
@@ -71,50 +31,53 @@ function safeRedirectPath(
   return s;
 }
 
-function delayMs(ms: number) {
-  return new Promise((r) => setTimeout(r, ms));
+function fieldErrors(parsed: { error: { flatten: () => { fieldErrors: Record<string, string[]> } } }) {
+  return parsed.error.flatten().fieldErrors;
+}
+
+function authErrorMessage(err: unknown, fallback: string): string {
+  if (err instanceof APIError) {
+    const code = err.body?.code;
+    if (code === "INVALID_EMAIL_OR_PASSWORD") return "Email ou senha incorretos.";
+    if (code === "USER_ALREADY_EXISTS") return "Já existe uma conta com este email.";
+    if (code === "INVALID_TOKEN" || code === "EXPIRED_TOKEN") return "Link inválido ou expirado.";
+    if (typeof err.body?.message === "string") return err.body.message;
+  }
+  return fallback;
 }
 
 export async function logoutAction(_formData?: FormData): Promise<void> {
   void _formData;
-  await clearSession();
+  await auth.api.signOut({ headers: await headers() });
   redirect("/login");
 }
 
 export async function loginAction(
   _prev: ActionResult<unknown> | null,
   formData: FormData,
-): Promise<ActionResult<{ user: MockSession }>> {
-  await delayMs(400);
-  const remember: "on" | "off" = formData.get("remember") === "on" ? "on" : "off";
+): Promise<ActionResult<{ userId: string }>> {
   const parsed = loginSchema.safeParse({
     email: formData.get("email"),
     password: formData.get("password"),
-    remember,
+    remember: formData.get("remember") === "on" ? "on" : "off",
   });
   if (!parsed.success) {
-    return { ok: false, formErrors: parsed.error.flatten().fieldErrors as Record<string, string[]> };
+    return { ok: false, formErrors: fieldErrors(parsed) as Record<string, string[]> };
   }
-  const outcome = isPlaywrightDeterministicEmail(parsed.data.email) ? "success" : pickOutcome();
-  if (outcome === "conflict") {
-    return {
-      ok: false,
-      message: "Email ou senha incorretos (simulação: conflito 30%).",
-    };
+
+  try {
+    await auth.api.signInEmail({
+      body: {
+        email: parsed.data.email,
+        password: parsed.data.password,
+        rememberMe: parsed.data.remember,
+      },
+      headers: await headers(),
+    });
+  } catch (err) {
+    return { ok: false, message: authErrorMessage(err, "Falha ao iniciar sessão.") };
   }
-  if (outcome === "error") {
-    return { ok: false, message: "Falha temporária. Tente novamente (simulação 10%)." };
-  }
-  const u = mockUserFromEmail(parsed.data.email);
-  const session: MockSession = {
-    userId: u.id,
-    email: u.email,
-    name: u.name,
-    emailVerified: u.emailVerified,
-    role: "admin",
-    mfaVerified: false,
-  };
-  await setSession(session);
+
   const nextPath = safeRedirectPath(formData.get("next"), "/dashboard");
   redirect(nextPath);
 }
@@ -122,34 +85,31 @@ export async function loginAction(
 export async function registerAction(
   _prev: ActionResult<unknown> | null,
   formData: FormData,
-): Promise<ActionResult<{ user: MockSession }>> {
-  await delayMs(500);
+): Promise<ActionResult<{ userId: string }>> {
   const parsed = registerSchema.safeParse({
     name: formData.get("name"),
     email: formData.get("email"),
     password: formData.get("password"),
+    confirmPassword: formData.get("confirmPassword") ?? formData.get("password"),
     acceptTos: (formData.get("acceptTos") as string | null) ?? "off",
   });
   if (!parsed.success) {
-    return { ok: false, formErrors: parsed.error.flatten().fieldErrors as Record<string, string[]> };
+    return { ok: false, formErrors: fieldErrors(parsed) as Record<string, string[]> };
   }
-  const outcome = isPlaywrightDeterministicEmail(parsed.data.email) ? "success" : pickOutcome();
-  if (outcome === "conflict") {
-    return { ok: false, message: "Já existe uma conta com este email (simulação 30%)." };
+
+  try {
+    await auth.api.signUpEmail({
+      body: {
+        email: parsed.data.email,
+        password: parsed.data.password,
+        name: parsed.data.name,
+      },
+      headers: await headers(),
+    });
+  } catch (err) {
+    return { ok: false, message: authErrorMessage(err, "Não foi possível criar a conta.") };
   }
-  if (outcome === "error") {
-    return { ok: false, message: "Não foi possível concluir o registo. Tente mais tarde." };
-  }
-  const u = mockUserFromEmail(parsed.data.email, parsed.data.name);
-  const session: MockSession = {
-    userId: u.id,
-    email: u.email,
-    name: u.name,
-    emailVerified: false,
-    role: "admin",
-    mfaVerified: false,
-  };
-  await setSession(session);
+
   redirect("/onboarding");
 }
 
@@ -157,15 +117,26 @@ export async function forgotPasswordAction(
   _prev: ActionResult<unknown> | null,
   formData: FormData,
 ): Promise<ActionResult<{ message: string }>> {
-  await delayMs(350);
   const parsed = forgotPasswordSchema.safeParse({ email: formData.get("email") });
   if (!parsed.success) {
-    return { ok: false, formErrors: parsed.error.flatten().fieldErrors as Record<string, string[]> };
+    return { ok: false, formErrors: fieldErrors(parsed) as Record<string, string[]> };
   }
+
+  try {
+    await auth.api.requestPasswordReset({
+      body: {
+        email: parsed.data.email,
+        redirectTo: "/reset-password",
+      },
+    });
+  } catch {
+    // Silenciamos erros aqui para não revelar se o email existe.
+  }
+
   return {
     ok: true,
     data: {
-      message: "Se existir uma conta para este email, enviámos instruções para redefinir a senha.",
+      message: "Se existir uma conta para este email, enviamos instruções para redefinir a senha.",
     },
   };
 }
@@ -174,56 +145,66 @@ export async function resetPasswordAction(
   _prev: ActionResult<unknown> | null,
   formData: FormData,
 ): Promise<ActionResult<{ message: string }>> {
-  await delayMs(400);
   const parsed = resetPasswordSchema.safeParse({
     token: formData.get("token"),
     password: formData.get("password"),
     confirmPassword: formData.get("confirmPassword"),
   });
   if (!parsed.success) {
-    return { ok: false, formErrors: parsed.error.flatten().fieldErrors as Record<string, string[]> };
+    return { ok: false, formErrors: fieldErrors(parsed) as Record<string, string[]> };
   }
-  const t = parsed.data.token;
-  if (t === "expired" || t.endsWith("-expired")) {
-    return { ok: false, message: "O link de recuperação expirou. Peça um novo." };
+
+  try {
+    await auth.api.resetPassword({
+      body: { token: parsed.data.token, newPassword: parsed.data.password },
+    });
+  } catch (err) {
+    return { ok: false, message: authErrorMessage(err, "Não foi possível redefinir a senha.") };
   }
+
   return { ok: true, data: { message: "Senha atualizada. Já pode iniciar sessão." } };
 }
 
 export async function verifyMfaAction(
   _prev: ActionResult<unknown> | null,
   formData: FormData,
-): Promise<ActionResult<unknown>> {
-  await delayMs(300);
+): Promise<ActionResult<{ verified: true }>> {
   const parsed = mfaCodeSchema.safeParse({ code: formData.get("code") });
   if (!parsed.success) {
-    return { ok: false, formErrors: parsed.error.flatten().fieldErrors as Record<string, string[]> };
+    return { ok: false, formErrors: fieldErrors(parsed) as Record<string, string[]> };
   }
-  if (parsed.data.code === "000000") {
-    return { ok: false, message: "Código inválido" };
+
+  try {
+    await auth.api.verifyTOTP({
+      body: { code: parsed.data.code },
+      headers: await headers(),
+    });
+  } catch (err) {
+    return { ok: false, message: authErrorMessage(err, "Código inválido.") };
   }
-  await updateSessionMfa();
+
   return { ok: true, data: { verified: true } };
 }
 
 export async function mfaRecoveryAction(
   _prev: ActionResult<unknown> | null,
   formData: FormData,
-): Promise<ActionResult<unknown>> {
-  await delayMs(300);
+): Promise<ActionResult<{ verified: true }>> {
   const parsed = mfaRecoverySchema.safeParse({ code: formData.get("code") });
   if (!parsed.success) {
-    return { ok: false, formErrors: parsed.error.flatten().fieldErrors as Record<string, string[]> };
+    return { ok: false, formErrors: fieldErrors(parsed) as Record<string, string[]> };
   }
-  await updateSessionMfa();
-  return { ok: true, data: { verified: true } };
-}
 
-async function updateSessionMfa() {
-  const s = await getSession();
-  if (s) {
-    await setSession({ ...s, mfaVerified: true });
+  try {
+    await auth.api.verifyBackupCode({
+      body: { code: parsed.data.code },
+      headers: await headers(),
+    });
+  } catch (err) {
+    return { ok: false, message: authErrorMessage(err, "Código de recuperação inválido.") };
   }
+
+  return { ok: true, data: { verified: true } };
 }
 
 export type LogoutFormState = { ok: boolean };
@@ -234,6 +215,6 @@ export async function logoutFormAction(
 ): Promise<LogoutFormState> {
   void _prev;
   void _formData;
-  await clearSession();
+  await auth.api.signOut({ headers: await headers() });
   return { ok: true };
 }

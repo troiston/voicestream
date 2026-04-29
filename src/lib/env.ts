@@ -7,8 +7,13 @@ const envSchema = z.object({
   STRIPE_SECRET_KEY: z.string().startsWith("sk_").optional(),
   STRIPE_WEBHOOK_SECRET: z.string().startsWith("whsec_").optional(),
   NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: z.string().startsWith("pk_").optional(),
-  BETTER_AUTH_SECRET: z.string().min(16).optional(),
-  BETTER_AUTH_URL: z.string().url().optional(),
+  BETTER_AUTH_SECRET: z.string().min(16),
+  BETTER_AUTH_URL: z.string().url(),
+  GOOGLE_CLIENT_ID: z.string().optional(),
+  GOOGLE_CLIENT_SECRET: z.string().optional(),
+  RESEND_API_KEY: z.string().optional(),
+  RESEND_FROM: z.string().optional(),
+  NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
 });
 
 export type Env = z.infer<typeof envSchema>;
