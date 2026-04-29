@@ -7,6 +7,8 @@ const envSchema = z.object({
   STRIPE_SECRET_KEY: z.string().startsWith("sk_").optional(),
   STRIPE_WEBHOOK_SECRET: z.string().startsWith("whsec_").optional(),
   NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: z.string().startsWith("pk_").optional(),
+  STRIPE_PRICE_PRO: z.string().startsWith("price_").optional(),
+  STRIPE_PRICE_ENTERPRISE: z.string().startsWith("price_").optional(),
   BETTER_AUTH_SECRET: z.string().min(16),
   BETTER_AUTH_URL: z.string().url(),
   GOOGLE_CLIENT_ID: z.string().optional(),

@@ -3,6 +3,7 @@ import { z } from "zod";
 import { db } from "@/lib/db";
 import { getSession } from "@/features/auth/session";
 import { presignPutUrl, getObjectKey } from "@/lib/storage/seaweed";
+import { checkRecordingQuota } from "@/lib/billing/check-quota";
 
 const bodySchema = z.object({
   spaceId: z.string().min(1, "spaceId é obrigatório"),
@@ -76,6 +77,21 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(
       { error: "Sem permissão" },
       { status: 403 }
+    );
+  }
+
+  // Verificar quota de gravação
+  const quotaCheck = await checkRecordingQuota(session.userId, parsed.data.durationSec);
+  if (!quotaCheck.allowed) {
+    return NextResponse.json(
+      {
+        error: "Limite mensal de minutos atingido para o plano atual",
+        plan: quotaCheck.plan,
+        usedMinutes: quotaCheck.usedMinutes,
+        limitMinutes: quotaCheck.limitMinutes,
+        upgradeUrl: "/billing",
+      },
+      { status: 402 }
     );
   }
 

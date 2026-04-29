@@ -1,5 +1,8 @@
 import { db } from "@/lib/db";
 import { getAccessibleSpaceIds } from "@/features/spaces/access";
+import { getCurrentPlan } from "@/lib/billing/get-current-plan";
+import { PLAN_LIMITS } from "@/lib/billing/plans";
+import { getMonthlyMinutesUsed } from "@/lib/billing/get-monthly-usage";
 
 export interface UsagePoint {
   day: string;
@@ -168,50 +171,14 @@ export async function getSubscriptionLimitAndUsage(userId: string): Promise<{
   usedMinutesThisMonth: number;
   percentageUsed: number;
 }> {
-  // Obtém a subscription do usuário
-  const subscription = await db.subscription.findFirst({
-    where: { userId },
-  });
-
-  // Mapeia stripePriceId para limites
-  const limitMap: Record<string, number> = {
-    // Valores padrão — ajustar conforme Stripe setup
-    free: 200,
-    pro: 2000,
-    enterprise: 10000,
-  };
-
-  // Detecta o plano pela priceId (simplificado)
-  let limitMinutes = 200; // default Free
-  if (subscription) {
-    if (subscription.stripePriceId.includes("pro")) limitMinutes = 2000;
-    if (subscription.stripePriceId.includes("enterprise")) limitMinutes = 10000;
-  }
-
-  // Calcula uso neste mês (desde dia 1 do mês corrente)
-  const now = new Date();
-  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-
-  const accessibleSpaceIds = await getAccessibleSpaceIds(userId);
-  let usedMinutes = 0;
-
-  if (accessibleSpaceIds.length > 0) {
-    const usage = await db.recording.aggregate({
-      where: {
-        spaceId: { in: accessibleSpaceIds },
-        capturedAt: { gte: monthStart },
-        status: { in: ["summarized", "transcribed"] },
-      },
-      _sum: { durationSec: true },
-    });
-
-    usedMinutes = Math.round((usage._sum.durationSec || 0) / 60);
-  }
+  const { plan } = await getCurrentPlan(userId);
+  const limitMinutes = PLAN_LIMITS[plan].minutesPerMonth;
+  const usedMinutes = await getMonthlyMinutesUsed(userId);
 
   return {
     limitMinutes,
     usedMinutesThisMonth: usedMinutes,
-    percentageUsed: Math.round((usedMinutes / limitMinutes) * 100),
+    percentageUsed: limitMinutes > 0 ? Math.round((usedMinutes / limitMinutes) * 100) : 0,
   };
 }
 

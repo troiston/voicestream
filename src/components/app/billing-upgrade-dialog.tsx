@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useId, useState } from "react";
+import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { planComparisonRows } from "@/lib/mocks/invoices";
@@ -8,10 +9,12 @@ import { cn } from "@/lib/utils";
 
 export interface BillingUpgradeDialogProps {
   className?: string;
+  currentPlan?: "free" | "pro" | "enterprise";
 }
 
-export function BillingUpgradeDialog({ className }: BillingUpgradeDialogProps) {
+export function BillingUpgradeDialog({ className, currentPlan = "free" }: BillingUpgradeDialogProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const titleId = useId();
   const descId = useId();
 
@@ -22,6 +25,39 @@ export function BillingUpgradeDialog({ className }: BillingUpgradeDialogProps) {
   const close = useCallback(() => {
     setIsOpen(false);
   }, []);
+
+  const handleUpgrade = useCallback(
+    async (plan: "pro" | "enterprise") => {
+      if (plan === currentPlan) {
+        toast.info("Você já está neste plano");
+        return;
+      }
+
+      setIsLoading(true);
+      try {
+        const response = await fetch("/api/billing/checkout", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ plan }),
+        });
+
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.message || "Falha ao gerar checkout");
+        }
+
+        const data = await response.json();
+        window.location.href = data.url;
+      } catch (error) {
+        console.error("Checkout error:", error);
+        toast.error(
+          error instanceof Error ? error.message : "Erro ao processar upgrade"
+        );
+        setIsLoading(false);
+      }
+    },
+    [currentPlan]
+  );
 
   useEffect(() => {
     if (!isOpen) {
@@ -102,11 +138,23 @@ export function BillingUpgradeDialog({ className }: BillingUpgradeDialogProps) {
               </div>
             </div>
             <div className="flex flex-wrap justify-end gap-3 border-t border-border bg-surface-1 px-6 py-4">
-              <Button type="button" variant="secondary" size="md" onClick={close}>
+              <Button
+                type="button"
+                variant="secondary"
+                size="md"
+                onClick={close}
+                disabled={isLoading}
+              >
                 Fechar
               </Button>
-              <Button type="button" variant="primary" size="md" onClick={close}>
-                Solicitar upgrade (mock)
+              <Button
+                type="button"
+                variant="primary"
+                size="md"
+                onClick={() => handleUpgrade("enterprise")}
+                disabled={isLoading || currentPlan === "enterprise"}
+              >
+                {isLoading ? "Processando..." : "Upgrade para Empresa"}
               </Button>
             </div>
           </div>

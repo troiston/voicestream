@@ -105,7 +105,21 @@ const worker = new Worker<TranscribeJobData>(QUEUE_NAME, async (job: Job<Transcr
       await tx.recording.update({ where: { id: recordingId }, data: { status: "summarized" } });
     });
 
-    // 6) AuditLog (best-effort)
+    // 6) Track usage (best-effort)
+    await db.usage.create({
+      data: {
+        userId: recording.userId,
+        type: "minutes_transcribed",
+        quantity: Math.ceil(recording.durationSec / 60),
+        metadata: {
+          recordingId,
+          spaceId: recording.spaceId,
+          model: summary.model,
+        },
+      },
+    }).catch((e) => console.warn("[transcribe-worker] usage tracking failed", e));
+
+    // 7) AuditLog (best-effort)
     await db.auditLog.create({
       data: {
         userId: recording.userId,
