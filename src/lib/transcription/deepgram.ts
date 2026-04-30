@@ -1,13 +1,13 @@
-import { DefaultDeepgramClient } from "@deepgram/sdk";
+import { DeepgramClient } from "@deepgram/sdk";
 import type { ListenV1Response } from "@deepgram/sdk";
 import { env } from "@/lib/env";
 import { presignGetUrl } from "@/lib/storage/seaweed";
 
-let _client: DefaultDeepgramClient | null = null;
+let _client: DeepgramClient | null = null;
 
-function getClient(): DefaultDeepgramClient {
+function getClient(): DeepgramClient {
   if (!_client) {
-    _client = new DefaultDeepgramClient({ apiKey: env.DEEPGRAM_API_KEY });
+    _client = new DeepgramClient({ apiKey: env.DEEPGRAM_API_KEY });
   }
   return _client;
 }
@@ -53,18 +53,20 @@ export async function transcribeFromStorageKey(
   } = opts || {};
 
   try {
-    // Generate presigned URL for the audio file (1 hour expiration)
+    // Fetch audio bytes via internal presigned URL (avoids exposing SeaweedFS to Deepgram)
     const presignedUrl = await presignGetUrl({
       key: storageKey,
       expiresInSec: 3600,
     });
+    const audioRes = await fetch(presignedUrl);
+    if (!audioRes.ok) {
+      throw new Error(`Failed to fetch audio from storage: ${audioRes.status}`);
+    }
+    const audioBuffer = Buffer.from(await audioRes.arrayBuffer());
 
     const client = getClient();
 
-    // Call Deepgram with presigned URL
-    // transcribeUrl returns a Promise that resolves to either ListenV1Response or ListenV1AcceptedResponse
-    const response = await client.listen.v1.media.transcribeUrl({
-      url: presignedUrl,
+    const response = await client.listen.v1.media.transcribeFile(audioBuffer, {
       language,
       model,
       diarize,
