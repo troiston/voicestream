@@ -6,6 +6,7 @@ import { db } from "@/lib/db";
 import { getAccessibleSpaceIds } from "@/features/spaces/access";
 import { SpaceDetailView } from "@/components/app/space-detail-view";
 import type { MockSpace, MockSpaceFeedItem } from "@/lib/mocks/spaces";
+import { decryptTranscriptIfNeeded } from "@/lib/crypto/transcripts";
 
 type PageProps = { params: Promise<{ id: string }> };
 
@@ -43,7 +44,7 @@ export default async function SpaceDetailPage({ params }: PageProps) {
     where: { spaceId: id },
     include: {
       user: { select: { name: true } },
-      transcription: { select: { text: true } },
+      transcription: { select: { text: true, encrypted: true } },
       summary: { select: { abstract: true } },
     },
     orderBy: { capturedAt: 'desc' },
@@ -51,14 +52,17 @@ export default async function SpaceDetailPage({ params }: PageProps) {
   });
 
   // Adapt to MockSpaceFeedItem shape
-  const feed: MockSpaceFeedItem[] = recordings.map(r => ({
-    id: r.id,
-    spaceId: r.spaceId,
-    author: r.user.name || 'Anónimo',
-    body: r.summary?.abstract || r.transcription?.text?.substring(0, 200) || `Gravação: ${r.title || 'Sem título'}`,
-    at: r.capturedAt.toISOString(),
-    kind: 'voice' as const,
-  }));
+  const feed: MockSpaceFeedItem[] = recordings.map(r => {
+    const decrypted = decryptTranscriptIfNeeded(r.transcription, r.userId);
+    return {
+      id: r.id,
+      spaceId: r.spaceId,
+      author: r.user.name || 'Anónimo',
+      body: r.summary?.abstract || decrypted?.text?.substring(0, 200) || `Gravação: ${r.title || 'Sem título'}`,
+      at: r.capturedAt.toISOString(),
+      kind: 'voice' as const,
+    };
+  });
 
   // Adapt space to MockSpace shape
   const adaptedSpace: MockSpace = {

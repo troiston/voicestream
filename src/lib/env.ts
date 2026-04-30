@@ -25,6 +25,20 @@ const envSchema = z.object({
   DEEPGRAM_API_KEY: z.string().min(1),
   REDIS_URL: z.string().url(),
   ANTHROPIC_API_KEY: z.string().min(1),
+  ENCRYPTION_KEY: z
+    .string()
+    .min(1, "ENCRYPTION_KEY é obrigatório")
+    .refine(
+      (v) => {
+        try {
+          return Buffer.from(v, "base64").length === 32;
+        } catch {
+          return false;
+        }
+      },
+      "ENCRYPTION_KEY deve ser base64 de 32 bytes"
+    ),
+  SENTRY_DSN: z.preprocess((v) => (v === "" ? undefined : v), z.string().url().optional()),
 });
 
 export type Env = z.infer<typeof envSchema>;

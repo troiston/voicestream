@@ -10,6 +10,7 @@ import { db } from "@/lib/db";
 import { Prisma } from "@/generated/prisma/client";
 import { transcribeFromStorageKey } from "@/lib/transcription/deepgram";
 import { summarizeAndExtract } from "@/lib/llm/anthropic";
+import { encryptTranscriptText } from "@/lib/crypto/envelope";
 
 const QUEUE_NAME = "transcribe";
 
@@ -17,8 +18,13 @@ const worker = new Worker<TranscribeJobData>(QUEUE_NAME, async (job: Job<Transcr
   const { recordingId } = job.data;
   console.log(`[transcribe-worker] start ${recordingId}`);
 
-  const recording = await db.recording.findUnique({ where: { id: recordingId } });
+  const recording = await db.recording.findUnique({
+    where: { id: recordingId },
+    include: { space: { select: { kind: true } } },
+  });
   if (!recording) throw new Error(`Recording ${recordingId} not found`);
+
+  const isSensitiveSpace = recording.space.kind === "saude" || recording.space.kind === "financas";
 
   // Idempotência: se já summarized, pular (retry/duplicado)
   if (recording.status === "summarized") {
@@ -31,21 +37,29 @@ const worker = new Worker<TranscribeJobData>(QUEUE_NAME, async (job: Job<Transcr
 
   try {
     // 2) Deepgram
-    const t = await transcribeFromStorageKey(recording.storageKey, { language: recording.language });
+    const t = await transcribeFromStorageKey(recording.storageKey, {
+      language: recording.language,
+      encryptionMeta: recording.encryptionMeta ?? undefined,
+    });
 
     // 3) Persist Transcription + segments (transação)
     await db.$transaction(async (tx) => {
       // Idempotência: apaga transcription anterior (retry parcial)
       await tx.transcription.deleteMany({ where: { recordingId } });
 
+      const storedText = isSensitiveSpace
+        ? encryptTranscriptText(t.text, recording.userId)
+        : t.text;
+
       const trans = await tx.transcription.create({
         data: {
           recordingId,
           provider: "deepgram",
           language: t.language,
-          text: t.text,
+          text: storedText,
           confidence: t.confidence,
-          rawJson: t.rawJson as Prisma.InputJsonValue,
+          rawJson: isSensitiveSpace ? Prisma.JsonNull : (t.rawJson as Prisma.InputJsonValue),
+          encrypted: isSensitiveSpace,
         },
       });
 
@@ -56,8 +70,11 @@ const worker = new Worker<TranscribeJobData>(QUEUE_NAME, async (job: Job<Transcr
             speaker: s.speaker,
             startMs: s.startMs,
             endMs: s.endMs,
-            text: s.text,
+            text: isSensitiveSpace
+              ? encryptTranscriptText(s.text, recording.userId)
+              : s.text,
             confidence: s.confidence,
+            encrypted: isSensitiveSpace,
           })),
         });
       }

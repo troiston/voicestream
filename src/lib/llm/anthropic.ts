@@ -1,5 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { env } from "@/lib/env";
+import { logger } from "@/lib/logger";
 
 export const MODEL_DEFAULT = "claude-sonnet-4-6";
 
@@ -124,9 +125,15 @@ export async function summarizeAndExtract(
   const tokensInput = response.usage.input_tokens ?? 0;
   const tokensOutput = response.usage.output_tokens ?? 0;
 
-  // eslint-disable-next-line no-console
-  console.log(
-    `[anthropic.summarizeAndExtract] model=${model} tokensInput=${tokensInput} tokensOutput=${tokensOutput} cacheRead=${response.usage.cache_read_input_tokens ?? 0} cacheWrite=${response.usage.cache_creation_input_tokens ?? 0}`
+  logger.info(
+    {
+      model,
+      tokensInput,
+      tokensOutput,
+      cacheRead: response.usage.cache_read_input_tokens ?? 0,
+      cacheWrite: response.usage.cache_creation_input_tokens ?? 0,
+    },
+    "[anthropic.summarizeAndExtract] usage"
   );
 
   const toolUse = response.content.find(

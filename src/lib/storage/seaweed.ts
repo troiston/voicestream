@@ -87,6 +87,45 @@ export async function presignGetUrl(
 }
 
 /**
+ * Get raw object bytes from S3
+ */
+export async function getObjectBytes(options: { key: string }): Promise<Buffer> {
+  const { key } = options;
+  const res = await s3Client.send(
+    new GetObjectCommand({ Bucket: env.S3_BUCKET, Key: key })
+  );
+  const body = res.Body as unknown as { transformToByteArray?: () => Promise<Uint8Array> };
+  if (body && typeof body.transformToByteArray === "function") {
+    return Buffer.from(await body.transformToByteArray());
+  }
+  const stream = res.Body as NodeJS.ReadableStream;
+  const chunks: Buffer[] = [];
+  for await (const chunk of stream) {
+    chunks.push(typeof chunk === "string" ? Buffer.from(chunk) : Buffer.from(chunk));
+  }
+  return Buffer.concat(chunks);
+}
+
+/**
+ * Put raw bytes to S3
+ */
+export async function putObjectBytes(options: {
+  key: string;
+  body: Buffer;
+  contentType?: string;
+}): Promise<void> {
+  const { key, body, contentType } = options;
+  await s3Client.send(
+    new PutObjectCommand({
+      Bucket: env.S3_BUCKET,
+      Key: key,
+      Body: body,
+      ContentType: contentType,
+    })
+  );
+}
+
+/**
  * Delete an object from S3
  */
 export async function deleteObject(options: { key: string }): Promise<void> {

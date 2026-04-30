@@ -1,6 +1,8 @@
 import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { getSession } from "@/features/auth/session";
+import { rateLimit } from "@/lib/rate-limit";
+import { logger } from "@/lib/logger";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -8,6 +10,9 @@ export const runtime = "nodejs";
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await getSession();
   if (!session) return new Response("Unauthorized", { status: 401 });
+
+  const rl = await rateLimit(req, `recordings:${session.userId}`, 60, 60);
+  if (!rl.ok) return rl.response;
 
   const { id } = await params;
   const recording = await db.recording.findUnique({ where: { id }, select: { id: true, userId: true, spaceId: true } });
@@ -59,7 +64,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
             controller.close();
           }
         } catch (e) {
-          console.error("[recordings/stream] error", e);
+          logger.error({ err: e }, "[recordings/stream] error");
           clearInterval(interval);
           controller.close();
         }

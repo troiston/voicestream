@@ -88,6 +88,10 @@ async function BillingContent(props: { checkoutStatus: string | null }) {
   const nextBillingDate = subscription?.currentPeriodEnd
     ? formatDate(subscription.currentPeriodEnd.toISOString())
     : null;
+  const daysUntilBilling = subscription?.currentPeriodEnd
+    // eslint-disable-next-line react-hooks/purity -- server component, recomputed per request
+    ? Math.max(1, Math.ceil((subscription.currentPeriodEnd.getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
+    : null;
 
   // checkoutStatus virá de searchParams da page (passado pelo wrapper async).
   const checkoutStatus = props.checkoutStatus;
@@ -237,7 +241,7 @@ async function BillingContent(props: { checkoutStatus: string | null }) {
                     <div className="absolute inset-3 rounded-full bg-surface-1" />
                     <div className="relative text-center">
                       <p className="text-3xl font-bold tabular-nums text-foreground">
-                        {Math.max(1, Math.ceil((new Date(nextBillingDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24)))}
+                        {daysUntilBilling}
                       </p>
                       <p className="text-xs text-muted-foreground">dias</p>
                     </div>

@@ -5,6 +5,8 @@ import { stripe } from "@/lib/stripe.service";
 import { env } from "@/lib/env";
 import { getOrCreateStripeCustomer } from "@/lib/billing/customer";
 import { db } from "@/lib/db";
+import { rateLimit } from "@/lib/rate-limit";
+import { logger } from "@/lib/logger";
 
 const bodySchema = z.object({
   plan: z.enum(["pro", "enterprise"]),
@@ -14,6 +16,9 @@ export async function POST(req: NextRequest) {
   try {
     const session = await getSession();
     if (!session) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
+
+    const rl = await rateLimit(req, `billing:${session.userId}`, 30, 60);
+    if (!rl.ok) return rl.response;
 
     const json = await req.json().catch(() => null);
     const parsed = bodySchema.safeParse(json);
@@ -61,7 +66,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ url: checkoutSession.url, sessionId: checkoutSession.id });
   } catch (err) {
-    console.error("[billing/checkout] Stripe error:", err);
+    logger.error({ err }, "[billing/checkout] Stripe error");
     return NextResponse.json({ error: "Erro ao criar sessão de pagamento" }, { status: 500 });
   }
 }

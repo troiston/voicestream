@@ -21,6 +21,7 @@ model User {
   twoFactorEnabled Boolean?    @default(false)
   createdAt        DateTime    @default(now())
   updatedAt        DateTime    @updatedAt
+  deletedAt        DateTime?
 
   preferences      Json?
 
@@ -264,6 +265,7 @@ model Recording {
   capturedAt   DateTime
   createdAt    DateTime        @default(now())
   updatedAt    DateTime        @updatedAt
+  encryptionMeta Json?
 
   space         Space          @relation(fields: [spaceId], references: [id], onDelete: Cascade)
   user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -285,6 +287,7 @@ model Transcription {
   text         String                @db.Text
   confidence   Float?
   rawJson      Json?
+  encrypted    Boolean               @default(false)
   createdAt    DateTime              @default(now())
 
   recording Recording              @relation(fields: [recordingId], references: [id], onDelete: Cascade)
@@ -303,6 +306,7 @@ model TranscriptionSegment {
   endMs           Int
   text            String  @db.Text
   confidence      Float?
+  encrypted       Boolean @default(false)
 
   transcription Transcription @relation(fields: [transcriptionId], references: [id], onDelete: Cascade)
 

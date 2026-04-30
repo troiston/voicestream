@@ -7,11 +7,16 @@ import { getSession } from "@/features/auth/session";
 import { stripe } from "@/lib/stripe.service";
 import { env } from "@/lib/env";
 import { db } from "@/lib/db";
+import { rateLimit } from "@/lib/rate-limit";
+import { logger } from "@/lib/logger";
 
-export async function POST(_req: NextRequest) {
+export async function POST(req: NextRequest) {
   try {
     const session = await getSession();
     if (!session) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
+
+    const rl = await rateLimit(req, `billing:${session.userId}`, 30, 60);
+    if (!rl.ok) return rl.response;
 
     const sub = await db.subscription.findFirst({
       where: { userId: session.userId },
@@ -31,7 +36,7 @@ export async function POST(_req: NextRequest) {
 
     return NextResponse.json({ url: portal.url });
   } catch (err) {
-    console.error("[billing/portal] Stripe error:", err);
+    logger.error({ err }, "[billing/portal] Stripe error");
     return NextResponse.json({ error: "Erro ao abrir portal de cobrança" }, { status: 500 });
   }
 }

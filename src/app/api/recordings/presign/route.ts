@@ -4,6 +4,8 @@ import { db } from "@/lib/db";
 import { getSession } from "@/features/auth/session";
 import { presignPutUrl, getObjectKey } from "@/lib/storage/seaweed";
 import { checkRecordingQuota } from "@/lib/billing/check-quota";
+import { rateLimit } from "@/lib/rate-limit";
+import { logger } from "@/lib/logger";
 
 const bodySchema = z.object({
   spaceId: z.string().min(1, "spaceId é obrigatório"),
@@ -25,6 +27,9 @@ export async function POST(req: NextRequest) {
       { status: 401 }
     );
   }
+
+  const rl = await rateLimit(req, `recordings:${session.userId}`, 60, 60);
+  if (!rl.ok) return rl.response;
 
   let json: unknown;
   try {
@@ -121,7 +126,7 @@ export async function POST(req: NextRequest) {
       expiresInSec,
     });
   } catch (error) {
-    console.error("Erro ao gerar presigned URL:", error);
+    logger.error({ err: error }, "Erro ao gerar presigned URL");
     return NextResponse.json(
       { error: "Erro ao gerar URL de upload" },
       { status: 500 }

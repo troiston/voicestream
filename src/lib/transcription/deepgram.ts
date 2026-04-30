@@ -1,7 +1,8 @@
 import { DeepgramClient } from "@deepgram/sdk";
 import type { ListenV1Response } from "@deepgram/sdk";
 import { env } from "@/lib/env";
-import { presignGetUrl } from "@/lib/storage/seaweed";
+import { getObjectBytes, presignGetUrl } from "@/lib/storage/seaweed";
+import { decryptAudio, isAudioEncryptionMeta } from "@/lib/crypto/envelope";
 
 let _client: DeepgramClient | null = null;
 
@@ -33,6 +34,7 @@ export type TranscribeOptions = {
   model?: string; // default "nova-3"
   diarize?: boolean; // default true
   smartFormat?: boolean; // default true
+  encryptionMeta?: unknown;
 };
 
 /**
@@ -50,19 +52,25 @@ export async function transcribeFromStorageKey(
     model = "nova-3",
     diarize = true,
     smartFormat = true,
+    encryptionMeta,
   } = opts || {};
 
   try {
-    // Fetch audio bytes via internal presigned URL (avoids exposing SeaweedFS to Deepgram)
-    const presignedUrl = await presignGetUrl({
-      key: storageKey,
-      expiresInSec: 3600,
-    });
-    const audioRes = await fetch(presignedUrl);
-    if (!audioRes.ok) {
-      throw new Error(`Failed to fetch audio from storage: ${audioRes.status}`);
+    let audioBuffer: Buffer;
+    if (isAudioEncryptionMeta(encryptionMeta)) {
+      const ciphertext = await getObjectBytes({ key: storageKey });
+      audioBuffer = decryptAudio(ciphertext, encryptionMeta);
+    } else {
+      const presignedUrl = await presignGetUrl({
+        key: storageKey,
+        expiresInSec: 3600,
+      });
+      const audioRes = await fetch(presignedUrl);
+      if (!audioRes.ok) {
+        throw new Error(`Failed to fetch audio from storage: ${audioRes.status}`);
+      }
+      audioBuffer = Buffer.from(await audioRes.arrayBuffer());
     }
-    const audioBuffer = Buffer.from(await audioRes.arrayBuffer());
 
     const client = getClient();
 

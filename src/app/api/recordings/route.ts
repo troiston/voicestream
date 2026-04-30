@@ -2,9 +2,12 @@ import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { getSession } from "@/features/auth/session";
-import { headObject } from "@/lib/storage/seaweed";
+import { headObject, getObjectBytes, putObjectBytes } from "@/lib/storage/seaweed";
 import { Prisma } from "@/generated/prisma/client";
 import { enqueueTranscribe } from "@/lib/queue";
+import { rateLimit } from "@/lib/rate-limit";
+import { logger } from "@/lib/logger";
+import { encryptAudio } from "@/lib/crypto/envelope";
 
 const bodySchema = z.object({
   spaceId: z.string().min(1, "spaceId é obrigatório"),
@@ -30,6 +33,9 @@ export async function POST(req: NextRequest) {
   if (!session) {
     return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
   }
+
+  const rl = await rateLimit(req, `recordings:${session.userId}`, 60, 60);
+  if (!rl.ok) return rl.response;
 
   // 2. Validar body
   let json: unknown;
@@ -84,6 +90,18 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  // 4.5. Encrypt audio at rest (envelope encryption, AES-256-GCM)
+  let encryptionMeta: Prisma.InputJsonValue;
+  try {
+    const plaintext = await getObjectBytes({ key: storageKey });
+    const { ciphertext, meta } = encryptAudio(plaintext);
+    await putObjectBytes({ key: storageKey, body: ciphertext, contentType: "application/octet-stream" });
+    encryptionMeta = meta as unknown as Prisma.InputJsonValue;
+  } catch (err) {
+    logger.error({ err }, "[recordings] encryption failed");
+    return NextResponse.json({ error: "Falha ao cifrar áudio" }, { status: 500 });
+  }
+
   // 5. Criar Recording
   let recording: { id: string; spaceId: string; status: string; storageKey: string; capturedAt: Date };
   try {
@@ -98,6 +116,7 @@ export async function POST(req: NextRequest) {
         language,
         status: "uploaded",
         capturedAt: new Date(capturedAt),
+        encryptionMeta,
       },
       select: {
         id: true,
@@ -117,7 +136,7 @@ export async function POST(req: NextRequest) {
         { status: 409 }
       );
     }
-    console.error("[recordings] Erro ao criar Recording:", err);
+    logger.error({ err }, "[recordings] Erro ao criar Recording");
     return NextResponse.json({ error: "Erro interno" }, { status: 500 });
   }
 
@@ -126,7 +145,7 @@ export async function POST(req: NextRequest) {
     await enqueueTranscribe(recording.id);
   } catch (e) {
     // Não falhe a request por causa da queue (resiliência)
-    console.error("[recordings] enqueue failed", e);
+    logger.error({ err: e }, "[recordings] enqueue failed");
   }
 
   // AuditLog (resiliente)
@@ -145,7 +164,7 @@ export async function POST(req: NextRequest) {
       },
     });
   } catch (auditErr) {
-    console.error("[recordings] Falha ao gravar AuditLog:", auditErr);
+    logger.error({ err: auditErr }, "[recordings] Falha ao gravar AuditLog");
   }
 
   // 7. Retornar 201
