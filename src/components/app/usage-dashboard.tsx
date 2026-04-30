@@ -232,7 +232,7 @@ export function UsageDashboard({
               })
             ) : (
               <p className="text-sm text-muted-foreground py-2">
-                Nenhum intent capturado ainda. (TODO: implementar NLP real)
+                Nenhum intent capturado ainda. (NLP placeholder — pós-MVP)
               </p>
             )}
           </CardContent>

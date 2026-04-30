@@ -38,7 +38,10 @@ const envSchema = z.object({
       },
       "ENCRYPTION_KEY deve ser base64 de 32 bytes"
     ),
-  SENTRY_DSN: z.preprocess((v) => (v === "" ? undefined : v), z.string().url().optional()),
+  SENTRY_DSN: z.preprocess(
+    (v) => (typeof v === "string" && (v === "" || !v.startsWith("http")) ? undefined : v),
+    z.string().url().optional(),
+  ),
 });
 
 export type Env = z.infer<typeof envSchema>;

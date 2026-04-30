@@ -115,7 +115,7 @@ export async function getUsageLast30dByWeek(userId: string): Promise<UsagePoint[
 }
 
 export async function getTopIntents(_userId: string): Promise<TopIntent[]> {
-  // TODO: implementar NLP real quando disponível
+  // NLP placeholder — pós-MVP, ver issue #TODO
   // Por enquanto, retorna tasks agrupadas por priority (top 5)
   // Placeholder vazio — será implementado quando NLP chegar
   return [];

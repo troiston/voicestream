@@ -1,21 +1,25 @@
-import { NextResponse } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
 import archiver from "archiver";
 import { PassThrough } from "node:stream";
 
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { headers } from "next/headers";
+import { rateLimit } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session) {
     return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
   }
 
   const userId = session.user.id;
+
+  const rl = await rateLimit(req, `lgpd:${userId}`, 5, 3600);
+  if (!rl.ok) return rl.response;
 
   const [
     user,
@@ -30,7 +34,21 @@ export async function GET() {
     tasks,
     auditLogs,
   ] = await Promise.all([
-    db.user.findUnique({ where: { id: userId } }),
+    db.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        image: true,
+        emailVerified: true,
+        createdAt: true,
+        updatedAt: true,
+        isDemo: true,
+        deletedAt: true,
+        preferences: true,
+      },
+    }),
     db.subscription.findMany({ where: { userId } }),
     db.usage.findMany({ where: { userId } }),
     db.space.findMany({ where: { ownerId: userId } }),

@@ -87,7 +87,7 @@ export function PrivacySettingsView() {
             </p>
           </div>
           <Button onClick={handleExport} disabled={exporting}>
-            <Download className="size-4" aria-hidden />
+            <Download className="size-4" aria-hidden="true" />
             {exporting ? "Preparando..." : "Exportar meus dados"}
           </Button>
         </div>
@@ -109,7 +109,7 @@ export function PrivacySettingsView() {
             onClick={() => setDeleteOpen(true)}
             disabled={deleting}
           >
-            <Trash2 className="size-4" aria-hidden />
+            <Trash2 className="size-4" aria-hidden="true" />
             Excluir minha conta
           </Button>
         </div>

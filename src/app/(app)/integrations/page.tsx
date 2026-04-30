@@ -5,7 +5,7 @@ import { IntegrationsViewEnhanced } from "@/components/integrations/integrations
 
 export const metadata: Metadata = {
   title: "Integrações",
-  description: "Catálogo de integrações e estados de ligação (mock).",
+  description: "Catálogo de integrações e estados de conexão (mock).",
   robots: {
     index: false,
     follow: false,
@@ -18,8 +18,8 @@ export default function IntegrationsPage() {
       <header>
         <h1 className="text-2xl font-bold tracking-tight">Integrações</h1>
         <p className="mt-2 max-w-2xl text-foreground/60">
-          Ligue ferramentas externas ao VoiceStream. Abaixo vê um catálogo agrupado por categoria com estados
-          «conectado» ou «disponível» e um fluxo de ligação em 3 passos.
+          Conecte ferramentas externas ao VoiceStream. Abaixo vê um catálogo agrupado por categoria com estados
+          «conectado» ou «disponível» e um fluxo de conexão em 3 passos.
         </p>
       </header>
       <section aria-labelledby="integrations-catalog-heading" className="space-y-8">

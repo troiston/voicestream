@@ -218,3 +218,20 @@ export async function logoutFormAction(
   await auth.api.signOut({ headers: await headers() });
   return { ok: true };
 }
+
+export async function verifyEmailAction(token: string | null): Promise<ActionResult<{ message: string }>> {
+  if (!token) {
+    return { ok: false, message: "Token não fornecido." };
+  }
+
+  try {
+    await auth.api.verifyEmail({
+      query: { token },
+      headers: await headers(),
+    });
+  } catch (err) {
+    return { ok: false, message: authErrorMessage(err, "Link inválido ou expirado.") };
+  }
+
+  return { ok: true, data: { message: "Email verificado com sucesso." } };
+}

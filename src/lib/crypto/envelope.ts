@@ -67,20 +67,24 @@ export function encryptAudio(plaintext: Buffer): {
 } {
   const master = getMasterKey();
   const dek = randomBytes(KEY_BYTES);
-  const data = aesGcmEncrypt(plaintext, dek);
-  const wrap = aesGcmEncrypt(dek, master);
-  return {
-    ciphertext: data.ciphertext,
-    meta: {
-      v: 1,
-      alg: "AES-256-GCM",
-      iv: data.iv.toString("base64"),
-      tag: data.tag.toString("base64"),
-      wrappedDek: wrap.ciphertext.toString("base64"),
-      dekIv: wrap.iv.toString("base64"),
-      dekTag: wrap.tag.toString("base64"),
-    },
-  };
+  try {
+    const data = aesGcmEncrypt(plaintext, dek);
+    const wrap = aesGcmEncrypt(dek, master);
+    return {
+      ciphertext: data.ciphertext,
+      meta: {
+        v: 1,
+        alg: "AES-256-GCM",
+        iv: data.iv.toString("base64"),
+        tag: data.tag.toString("base64"),
+        wrappedDek: wrap.ciphertext.toString("base64"),
+        dekIv: wrap.iv.toString("base64"),
+        dekTag: wrap.tag.toString("base64"),
+      },
+    };
+  } finally {
+    dek.fill(0);
+  }
 }
 
 export function decryptAudio(
@@ -111,6 +115,7 @@ export function isAudioEncryptionMeta(v: unknown): v is AudioEncryptionMeta {
   const m = v as Record<string, unknown>;
   return (
     m.v === 1 &&
+    m.alg === "AES-256-GCM" &&
     typeof m.iv === "string" &&
     typeof m.tag === "string" &&
     typeof m.wrappedDek === "string" &&

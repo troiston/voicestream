@@ -56,6 +56,12 @@ export async function POST(req: NextRequest) {
   const { spaceId, storageKey, durationSec, mimeType, language, title, capturedAt } =
     parsed.data;
 
+  // 2.5. Verificar que o storageKey pertence ao caller
+  const storageKeyOwner = storageKey.split("/")[1];
+  if (storageKeyOwner !== session.userId) {
+    return NextResponse.json({ error: "Sem permissão" }, { status: 403 });
+  }
+
   // 3. Verificar Space + permissão
   const space = await db.space.findUnique({
     where: { id: spaceId },

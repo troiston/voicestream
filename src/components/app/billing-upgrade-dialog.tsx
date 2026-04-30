@@ -84,6 +84,7 @@ export function BillingUpgradeDialog({ className, currentPlan = "free" }: Billin
             className="absolute inset-0 bg-foreground/30"
             role="presentation"
             onClick={close}
+            aria-hidden="true"
           />
           <div
             id="e2e-billing-compare-dlg"

@@ -6,7 +6,7 @@ import { getPublicSiteUrl } from "@/lib/public-site-url";
 const LAST_UPDATED = "2026-04-25";
 
 const toc = [
-  { href: "#definicoes", label: "Definições" },
+  { href: "#definicoes", label: "Configurações" },
   { href: "#servico", label: "Serviço e aceitação" },
   { href: "#contas", label: "Contas, idade e segurança" },
   { href: "#pagamentos", label: "Planos, preços e pagamentos" },
@@ -79,7 +79,7 @@ export default function TermsPage() {
       <div className="mt-10 space-y-12 text-sm leading-relaxed text-muted-foreground">
         <section id="definicoes" aria-labelledby="terms-definicoes">
           <h2 className="text-2xl font-bold text-foreground" id="terms-definicoes">
-            1. Definições
+            1. Configurações
           </h2>
           <ul className="mt-4 list-disc space-y-2 ps-5">
             <li>
