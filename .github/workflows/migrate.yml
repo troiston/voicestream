@@ -1,0 +1,47 @@
+name: Migrate Production DB
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: migrate-production
+  cancel-in-progress: false
+
+jobs:
+  migrate:
+    name: prisma migrate deploy
+    runs-on: ubuntu-latest
+    environment: production
+
+    env:
+      NODE_VERSION: "22"
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+
+      - name: Install
+        run: npm ci
+
+      - name: Generate Prisma Client
+        run: npx prisma generate
+
+      - name: Run migrations
+        run: |
+          set -o pipefail
+          npx prisma migrate deploy 2>&1 | tee migrate.log
+
+      - name: Upload migration log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: migrate-log
+          path: migrate.log
+          retention-days: 30
