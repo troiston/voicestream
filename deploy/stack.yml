@@ -1,27 +1,26 @@
-version: "3.9"
+version: "3.8"
 
-# VoiceStream production stack — Docker Swarm.
-# Deployed via Portainer Git integration (auto-redeploy on push to main).
+# VoiceStream production stack — Docker Swarm (managed via Portainer GitOps).
 #
-# External infrastructure (provisioned out-of-band, NOT defined here):
-#   - Postgres            : reachable on the `internal` overlay as `postgres:5432`
-#   - SeaweedFS (S3 API)  : reachable on the `internal` overlay as `seaweedfs:8333`
-#   - Dragonfly (Redis)   : reachable on the `internal` overlay as `dragonfly:6379`
-#   - Traefik             : attached to the external `traefik-public` network
+# External infra (provisioned out-of-band, NOT defined here):
+#   - Postgres   : reachable on `network_swarm_public` as `postgres:5432`
+#   - SeaweedFS  : reachable on `network_swarm_public` as `seaweedfs:8333`
+#   - Dragonfly  : reachable on `network_swarm_public` as `dragonfly:6379`
+#   - Traefik    : attached to `network_swarm_public`, terminates TLS
 
 services:
   web:
     image: ghcr.io/troiston/voicestream-web:latest
-    networks:
-      - traefik-public
-      - internal
+    hostname: voicestream-web
     environment:
+      TZ: America/Manaus
       NODE_ENV: production
       BETTER_AUTH_URL: https://voicestream.com.br
       S3_ENDPOINT: http://seaweedfs:8333
       S3_BUCKET: voicestream-recordings
       S3_FORCE_PATH_STYLE: "true"
       NEXT_PUBLIC_APP_NAME: VoiceStream
+      RESEND_FROM: alertas@voicestream.com.br
     secrets:
       - database_url
       - better_auth_secret
@@ -37,24 +36,35 @@ services:
       - stripe_webhook_secret
       - encryption_key
       - sentry_dsn
+    networks:
+      - network_swarm_public
     healthcheck:
       test: ["CMD", "wget", "--spider", "-q", "http://localhost:3000/api/health"]
       interval: 30s
       timeout: 5s
       retries: 3
-      start_period: 30s
+      start_period: 40s
     deploy:
+      mode: replicated
       replicas: 3
+      placement:
+        constraints:
+          - node.role == manager
+      resources:
+        limits:
+          memory: 1G
       update_config:
         parallelism: 1
         delay: 30s
         order: start-first
         failure_action: rollback
       restart_policy:
-        condition: any
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
       labels:
         - "traefik.enable=true"
-        - "traefik.docker.network=traefik-public"
+        - "traefik.docker.network=network_swarm_public"
 
         - "traefik.http.routers.voicestream-web.rule=Host(`voicestream.com.br`)"
         - "traefik.http.routers.voicestream-web.entrypoints=websecure"
@@ -78,15 +88,16 @@ services:
 
   worker:
     image: ghcr.io/troiston/voicestream-worker:latest
-    networks:
-      - internal
+    hostname: voicestream-worker
     environment:
+      TZ: America/Manaus
       NODE_ENV: production
       BETTER_AUTH_URL: https://voicestream.com.br
       S3_ENDPOINT: http://seaweedfs:8333
       S3_BUCKET: voicestream-recordings
       S3_FORCE_PATH_STYLE: "true"
       NEXT_PUBLIC_APP_NAME: VoiceStream
+      RESEND_FROM: alertas@voicestream.com.br
     secrets:
       - database_url
       - better_auth_secret
@@ -100,8 +111,17 @@ services:
       - stripe_webhook_secret
       - encryption_key
       - sentry_dsn
+    networks:
+      - network_swarm_public
     deploy:
+      mode: replicated
       replicas: 2
+      placement:
+        constraints:
+          - node.role == manager
+      resources:
+        limits:
+          memory: 1.5G
       update_config:
         parallelism: 1
         delay: 30s
@@ -113,11 +133,9 @@ services:
         max_attempts: 5
 
 networks:
-  traefik-public:
+  network_swarm_public:
+    name: network_swarm_public
     external: true
-  internal:
-    driver: overlay
-    attachable: true
 
 secrets:
   database_url:
