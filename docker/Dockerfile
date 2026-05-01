@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1.7
 
 # Stage 1 — dependências
-FROM node:22.11-alpine AS deps
+FROM node:22.13-alpine AS deps
 RUN apk add --no-cache libc6-compat
 WORKDIR /app
 COPY package.json package-lock.json ./
@@ -9,7 +9,7 @@ RUN --mount=type=cache,target=/root/.npm \
     npm ci --no-audit --no-fund
 
 # Stage 2 — build
-FROM node:22.11-alpine AS builder
+FROM node:22.13-alpine AS builder
 RUN apk add --no-cache libc6-compat
 WORKDIR /app
 ENV NEXT_TELEMETRY_DISABLED=1
@@ -20,7 +20,7 @@ RUN npx prisma generate
 RUN npm run build
 
 # Stage 3 — runtime
-FROM node:22.11-alpine AS runner
+FROM node:22.13-alpine AS runner
 RUN apk add --no-cache libc6-compat curl tini
 WORKDIR /app
 
