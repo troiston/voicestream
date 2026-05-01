@@ -97,13 +97,6 @@ const NotificationIcons = {
   Receipt,
 }
 
-const MOCK_NOTIFICATIONS: Notification[] = [
-  { id: 1, read: false, icon: "FileText", title: "Transcrição concluída", desc: "Reunião de equipe - 45 min", time: "há 5 min" },
-  { id: 2, read: false, icon: "CheckSquare", title: "Nova tarefa criada", desc: '"Revisar relatório Q2"', time: "há 23 min" },
-  { id: 3, read: true, icon: "Users", title: "Espaço compartilhado", desc: "Ana adicionou você ao espaço Produto", time: "há 2h" },
-  { id: 4, read: true, icon: "Receipt", title: "Fatura disponível", desc: "Fatura de Abril 2026 pronta", time: "há 1d" },
-]
-
 export function AppShell({
   children,
   userName,
@@ -122,7 +115,14 @@ export function AppShell({
   const mod = useModifierKey()
   const [userMenuOpen, setUserMenuOpen] = useState(false)
   const [notifOpen, setNotifOpen] = useState(false)
-  const [notifications, setNotifications] = useState<Notification[]>(MOCK_NOTIFICATIONS)
+  const [notifications, setNotifications] = useState<Notification[]>([])
+
+  useEffect(() => {
+    fetch("/api/notifications")
+      .then((r) => r.json())
+      .then((data) => setNotifications(data.notifications || []))
+      .catch(() => setNotifications([]))
+  }, [])
 
   const onKey = useCallback((e: KeyboardEvent) => {
     if ((e.key === "k" || e.key === "K") && (e.metaKey || e.ctrlKey)) {

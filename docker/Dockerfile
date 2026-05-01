@@ -25,6 +25,7 @@ ENV DATABASE_URL=postgresql://build:build@localhost:5432/build \
     BETTER_AUTH_SECRET=build_time_dummy_secret_min_16_chars \
     BETTER_AUTH_URL=https://voicestream.com.br \
     S3_ENDPOINT=http://localhost:8333 \
+    S3_PUBLIC_ENDPOINT=http://localhost:8333 \
     S3_ACCESS_KEY=build \
     S3_SECRET_KEY=build \
     S3_BUCKET=build \

@@ -5,6 +5,7 @@ import { ArrowUpRight, Clock, Mic, CheckSquare, Zap, TrendingUp, Activity, Check
 import { Sparkline7d } from "@/components/dashboard/sparkline-7d"
 import { KpiMicroSparkline } from "@/components/dashboard/kpi-micro-sparkline"
 import { RecentSpaces } from "@/components/dashboard/recent-spaces"
+import { OnboardingChecklist } from "@/components/app/onboarding-checklist"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { DASHBOARD_QUICK_ACTIONS } from "@/lib/mocks/dashboard"
@@ -46,6 +47,13 @@ function toneDot(tone: "success" | "warning" | "default") {
 
 export default async function DashboardPage() {
   const session = await requireSession()
+
+  // Fetch user to check onboarding status
+  const user = await import("@/lib/db").then(m =>
+    m.db.user.findUnique({ where: { id: session.userId } })
+  )
+  const hasCompletedOnboarding = user?.onboardingCompletedAt !== null
+
   const [kpis, minutes7dData, recentSpacesList] = await Promise.all([
     getDashboardKPIs(session.userId),
     getDashboardMinutes7d(session.userId),
@@ -107,7 +115,9 @@ export default async function DashboardPage() {
   ]
 
   return (
-    <div className="space-y-8 max-w-7xl">
+    <div className="flex gap-6">
+      {/* Main content */}
+      <div className="min-w-0 flex-1 space-y-8 max-w-7xl">
       {/* Page header */}
       <div className="space-y-1">
         <h1 className="text-2xl font-bold tracking-tight">Visão geral</h1>
@@ -274,6 +284,12 @@ export default async function DashboardPage() {
 
       {/* Recent spaces */}
       <RecentSpaces spaces={recentSpacesList} />
+      </div>
+
+      {/* Sidepanel — Primeiros passos */}
+      {!hasCompletedOnboarding && (
+        <OnboardingChecklist />
+      )}
     </div>
   )
 }

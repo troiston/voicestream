@@ -9,9 +9,21 @@ import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { randomUUID } from "crypto";
 import { env } from "../env";
 
-// Singleton S3 client configured for SeaweedFS
+// Internal S3 client (server-to-server inside the swarm).
 const s3Client = new S3Client({
   endpoint: env.S3_ENDPOINT,
+  region: env.S3_REGION,
+  credentials: {
+    accessKeyId: env.S3_ACCESS_KEY,
+    secretAccessKey: env.S3_SECRET_KEY,
+  },
+  forcePathStyle: env.S3_FORCE_PATH_STYLE,
+});
+
+// Public S3 client used only to mint presigned URLs that the browser will hit.
+// Falls back to the internal endpoint in dev where there is no public hostname.
+const s3PublicClient = new S3Client({
+  endpoint: env.S3_PUBLIC_ENDPOINT ?? env.S3_ENDPOINT,
   region: env.S3_REGION,
   credentials: {
     accessKeyId: env.S3_ACCESS_KEY,
@@ -67,7 +79,7 @@ export async function presignPutUrl(
     ContentType: contentType,
   });
 
-  return getSignedUrl(s3Client, command, { expiresIn: expiresInSec });
+  return getSignedUrl(s3PublicClient, command, { expiresIn: expiresInSec });
 }
 
 /**
@@ -83,7 +95,7 @@ export async function presignGetUrl(
     Key: key,
   });
 
-  return getSignedUrl(s3Client, command, { expiresIn: expiresInSec });
+  return getSignedUrl(s3PublicClient, command, { expiresIn: expiresInSec });
 }
 
 /**

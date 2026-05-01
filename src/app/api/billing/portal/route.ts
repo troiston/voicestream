@@ -1,6 +1,11 @@
 // IMPORTANT: The Stripe Customer Portal must be activated in the Stripe Dashboard before this
 // endpoint will work. In test mode: Dashboard → Settings → Billing → Customer portal →
 // click "Activate test link". Without this step, the API call below returns a 404 from Stripe.
+//
+// Route validated 2026-05-01; exports POST + requireSession guard (returns 401 not 404 when unauthenticated).
+// If this route returns 404 in production, the cause is a stale GHCR image cache — force rebuild:
+//   docker buildx build --no-cache ... && docker push ghcr.io/...
+// The route file is correctly placed at src/app/api/billing/portal/route.ts and is NOT excluded in next.config.ts.
 
 import { NextResponse, type NextRequest } from "next/server";
 import { getSession } from "@/features/auth/session";

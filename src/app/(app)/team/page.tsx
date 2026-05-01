@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 
 import { requireSession } from "@/features/auth/guards";
 import { db } from "@/lib/db";
+import { getCurrentPlan } from "@/lib/billing/get-current-plan";
 import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -15,7 +16,6 @@ import {
   TableCell,
 } from "@/components/ui/table";
 import type { UserRole } from "@/types/team";
-import { TeamInviteDialog } from "@/components/app/team-invite-dialog";
 import Link from "next/link";
 
 export const metadata: Metadata = {
@@ -58,6 +58,37 @@ function formatSeen(date: Date): string {
 
 export default async function TeamPage() {
   const session = await requireSession();
+
+  const { plan } = await getCurrentPlan(session.userId);
+
+  if (plan !== "enterprise") {
+    return (
+      <div className="space-y-8">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Equipe</h1>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Membros colaboradores nos seus espaços e convites pendentes.
+          </p>
+        </div>
+        <section
+          className="rounded-[var(--radius-xl)] border-2 border-dashed border-border/50 bg-surface-1/30 p-10 text-center"
+          aria-labelledby="upgrade-heading"
+        >
+          <h2 id="upgrade-heading" className="text-lg font-semibold">
+            Funcionalidade exclusiva do plano Empresa
+          </h2>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Convites de equipe disponíveis no plano Empresa. Faça upgrade para colaborar.
+          </p>
+          <Link href="/billing">
+            <Button type="button" className="btn-gradient mt-6" variant="primary">
+              Ver planos e fazer upgrade
+            </Button>
+          </Link>
+        </section>
+      </div>
+    );
+  }
 
   // Get all spaces where user is owner
   const ownedSpaces = await db.space.findMany({

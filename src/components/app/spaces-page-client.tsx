@@ -5,13 +5,13 @@ import Link from "next/link";
 import { useCallback, useEffect, useId, useMemo, useState } from "react";
 import { Grid3X3, List, Layers } from "lucide-react";
 
-import type { MockSpace } from "@/lib/mocks/spaces";
+import type { SpaceItem } from "@/types/domain";
 import { CreateSpaceForm } from "@/components/app/create-space-form";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 export interface SpacesPageClientProps {
-  initialSpaces: MockSpace[];
+  initialSpaces: SpaceItem[];
 }
 
 const MOCK_AVATARS = ["🧑", "👩", "🧔", "👨"];
@@ -32,7 +32,7 @@ function getRelativeTime(date: Date): string {
 
 export function SpacesPageClient({ initialSpaces }: SpacesPageClientProps) {
   const reduce = useReducedMotion();
-  const [extras, setExtras] = useState<MockSpace[]>([]);
+  const [extras, setExtras] = useState<SpaceItem[]>([]);
   const [query, setQuery] = useState("");
   const [isGridView, setIsGridView] = useState(true);
   const formId = useId();
@@ -77,7 +77,7 @@ export function SpacesPageClient({ initialSpaces }: SpacesPageClientProps) {
   }, [isOpen, closeDialog]);
 
   const handleCreated = useCallback(
-    (space: MockSpace) => {
+    (space: SpaceItem) => {
       setExtras((prev) => [space, ...prev]);
       closeDialog();
     },
@@ -93,8 +93,7 @@ export function SpacesPageClient({ initialSpaces }: SpacesPageClientProps) {
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Espaços</h1>
           <p className="mt-2 max-w-xl text-sm text-muted-foreground">
-            Agrupe conversas, notas e tarefas. Dados em mock — a criação simula gravação local até
-            existir API.
+            Agrupe conversas, notas e tarefas por contexto — trabalho, família ou projetos pessoais.
           </p>
         </div>
         <Button type="button" variant="primary" className="btn-gradient shrink-0" onClick={openDialog}>
@@ -233,7 +232,7 @@ export function SpacesPageClient({ initialSpaces }: SpacesPageClientProps) {
                     {/* Member avatars stack */}
                     <div className="mt-4 flex items-center gap-2">
                       <div className="flex">
-                        {Array.from({ length: Math.min(3, s.members) }).map((_, i) => (
+                        {Array.from({ length: Math.min(3, s.memberCount) }).map((_, i) => (
                           <div
                             key={i}
                             className={cn(
@@ -249,21 +248,21 @@ export function SpacesPageClient({ initialSpaces }: SpacesPageClientProps) {
                           </div>
                         ))}
                       </div>
-                      {s.members > 3 && (
+                      {s.memberCount > 3 && (
                         <span className="text-xs font-medium text-muted-foreground">
-                          +{s.members - 3}
+                          +{s.memberCount - 3}
                         </span>
                       )}
                     </div>
 
                     {/* Captures + last activity */}
                     <p className="mt-4 text-xs text-muted-foreground">
-                      {s.members} membro{s.members === 1 ? "" : "s"} · {getRelativeTime(new Date(s.lastActivity))}
+                      {s.memberCount} membro{s.memberCount === 1 ? "" : "s"} · {getRelativeTime(new Date(s.lastActivity))}
                     </p>
                   </>
                 ) : (
                   <div className="ml-auto flex flex-col items-end text-xs text-muted-foreground">
-                    <span>{s.members} membro{s.members === 1 ? "" : "s"}</span>
+                    <span>{s.memberCount} membro{s.memberCount === 1 ? "" : "s"}</span>
                     <span>{getRelativeTime(new Date(s.lastActivity))}</span>
                   </div>
                 )}

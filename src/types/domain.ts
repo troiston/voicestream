@@ -1,5 +1,24 @@
 import type { TaskStatus, TaskPriority } from "@/generated/prisma/client";
 
+export type SpaceItem = {
+  id: string;
+  name: string;
+  description: string;
+  lastActivity: string; // ISO
+  memberCount: number;
+  color: string;
+  icon: string;
+};
+
+export type SpaceFeedItem = {
+  id: string;
+  spaceId: string;
+  author: string;
+  body: string;
+  at: string; // ISO
+  kind: "voice" | "note" | "task";
+};
+
 export type TaskListItem = {
   id: string;
   title: string;

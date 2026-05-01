@@ -26,7 +26,16 @@ export async function POST(req: NextRequest) {
 
     const priceId =
       parsed.data.plan === "pro" ? env.STRIPE_PRICE_PRO : env.STRIPE_PRICE_ENTERPRISE;
-    if (!priceId) return NextResponse.json({ error: "Plano não configurado" }, { status: 503 });
+    if (!priceId) {
+      if (parsed.data.plan === "enterprise") {
+        logger.error("STRIPE_PRICE_ENTERPRISE not configured in env");
+        return NextResponse.json(
+          { error: "Plano Empresa em configuração. Entre em contato com vendas.", message: "Plano Empresa em configuração. Entre em contato com vendas." },
+          { status: 503 }
+        );
+      }
+      return NextResponse.json({ error: "Plano não configurado", message: "Plano não configurado" }, { status: 503 });
+    }
 
     const customerId = await getOrCreateStripeCustomer(
       session.userId,

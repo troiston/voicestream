@@ -2,17 +2,10 @@
 
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader } from "@/components/ui/card";
-import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-
-const MOCK_SESSIONS = [
-  { id: "s1", device: "Chrome · Linux", ip: "192.168.1.100", lastActive: "Agora", current: true },
-  { id: "s2", device: "Safari · iOS", ip: "203.0.113.42", lastActive: "há 2 dias", current: false },
-  { id: "s3", device: "Firefox · macOS", ip: "198.51.100.89", lastActive: "há 1 semana", current: false },
-];
 
 export function SecuritySection() {
   const [showPasswordForm, setShowPasswordForm] = useState(false);
@@ -41,29 +34,21 @@ export function SecuritySection() {
     toast.success("Senha atualizada com sucesso!");
   };
 
-  const handleRevokeSession = (sessionId: string) => {
-    toast.success(`Sessão ${sessionId} encerrada`);
-  };
 
   return (
     <Card className="border border-border/60 bg-surface-1 shadow-none">
       <CardHeader>
         <h2 className="text-base font-semibold tracking-tight text-foreground">Segurança</h2>
-        <CardDescription>2FA, senhas e sessões ativas (UI apenas).</CardDescription>
+        <CardDescription>Configure 2FA e gerencie suas sessões.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-        <Alert
-          variant="info"
-          title="Autenticação mock"
-          description="Nesta fase não há Better Auth/Clerk. Os controlos abaixo são placeholders visuais."
-        />
 
         {/* Card 1: Alterar Senha */}
         <div className="rounded-[var(--radius-lg)] border border-border/60 bg-surface-2/30 p-4">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <p className="text-sm font-medium text-foreground">Senha</p>
-              <p className="text-xs text-muted-foreground">Última alteração: 3 meses atrás</p>
+              <p className="text-xs text-muted-foreground">Última alteração: indisponível</p>
             </div>
             <Button
               type="button"
@@ -77,24 +62,23 @@ export function SecuritySection() {
 
           {showPasswordForm && (
             <div className="mt-4 pt-4 border-t border-border/60 space-y-3">
-              <Input
+              <PasswordInput
                 id="current-password"
                 label="Senha atual"
-                type="password"
                 value={currentPassword}
                 onChange={(e) => setCurrentPassword(e.target.value)}
               />
-              <Input
+              <PasswordInput
                 id="new-password"
                 label="Nova palavra-passe"
-                type="password"
+                autoComplete="new-password"
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
               />
-              <Input
+              <PasswordInput
                 id="confirm-password"
                 label="Confirmar nova palavra-passe"
-                type="password"
+                autoComplete="new-password"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
               />
@@ -116,41 +100,7 @@ export function SecuritySection() {
         {/* Card 2: Sessões Ativas */}
         <div className="rounded-[var(--radius-lg)] border border-border/60 bg-surface-2/30 p-4">
           <h3 className="text-sm font-semibold text-foreground mb-4">Sessões ativas</h3>
-          <div className="space-y-2">
-            {MOCK_SESSIONS.map((session) => (
-              <div
-                key={session.id}
-                className="flex flex-col gap-2 rounded-lg border border-border/40 bg-surface-1 p-3 sm:flex-row sm:items-center sm:justify-between"
-              >
-                <div className="flex-1">
-                  <div className="flex items-center gap-2">
-                    <p className="text-sm font-medium text-foreground">{session.device}</p>
-                    {session.current && (
-                      <Badge variant="secondary" className="text-xs">
-                        Sessão atual
-                      </Badge>
-                    )}
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    {session.ip} · {session.lastActive}
-                  </p>
-                </div>
-                {!session.current && (
-                  <Button
-                    type="button"
-                    variant="danger"
-                    size="sm"
-                    onClick={() => handleRevokeSession(session.id)}
-                  >
-                    Encerrar
-                  </Button>
-                )}
-              </div>
-            ))}
-          </div>
-          <p className="text-xs text-muted-foreground mt-4">
-            Encerre as sessões que não reconheça para manter a sua conta segura.
-          </p>
+          <p className="text-sm text-muted-foreground">Nenhuma sessão ativa registrada nesta versão.</p>
         </div>
 
         {/* Card 3: Autenticação em 2 Fatores */}
@@ -172,12 +122,12 @@ export function SecuritySection() {
               type="button"
               variant="secondary"
               size="sm"
+              disabled
               onClick={() => {
-                setTwoFactorEnabled(!twoFactorEnabled);
-                toast.success(twoFactorEnabled ? "2FA desativado" : "2FA ativado (mock)");
+                toast.info("Em breve — fluxo de configuração TOTP");
               }}
             >
-              {twoFactorEnabled ? "Desativar" : "Ativar"}
+              Em breve
             </Button>
           </div>
         </div>

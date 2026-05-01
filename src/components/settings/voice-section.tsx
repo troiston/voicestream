@@ -18,7 +18,7 @@ export function VoiceSection() {
     <Card className="border border-border/60 bg-surface-1 shadow-none">
       <CardHeader>
         <h2 className="text-base font-semibold tracking-tight text-foreground">Voz e STT</h2>
-        <CardDescription>Modelo de transcrição, idioma e sensibilidade (mock).</CardDescription>
+        <CardDescription>Configure preferências de captura de áudio.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         {/* Idioma Select */}
@@ -112,9 +112,6 @@ export function VoiceSection() {
           </div>
         </div>
 
-        <p className="text-sm text-muted-foreground">
-          P95 de latência e políticas de buffer estão no PRD; esta UI prepara o contrato de configuração.
-        </p>
       </CardContent>
     </Card>
   );

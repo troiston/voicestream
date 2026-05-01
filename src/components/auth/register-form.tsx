@@ -4,6 +4,7 @@ import { useActionState, useId, useState } from "react";
 import { registerAction } from "@/features/auth/actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 import { Alert } from "@/components/ui/alert";
 import type { ActionResult } from "@/features/auth/actions";
 
@@ -87,7 +88,7 @@ export function RegisterForm() {
         error={st && !st.ok && st.formErrors ? st.formErrors.email?.[0] : undefined}
       />
       <div>
-        <Input
+        <PasswordInput
           name="password"
           id="reg-pw"
           onChange={(e) => {
@@ -98,13 +99,12 @@ export function RegisterForm() {
           required
           autoComplete="new-password"
           label="Senha"
-          type="password"
           error={st && !st.ok && st.formErrors ? st.formErrors.password?.[0] : undefined}
         />
         <PasswordStrength password={pw} />
       </div>
       <div>
-        <Input
+        <PasswordInput
           name="confirmPassword"
           id="reg-pw-confirm"
           onChange={(e) => {
@@ -115,7 +115,6 @@ export function RegisterForm() {
           required
           autoComplete="new-password"
           label="Confirmar senha"
-          type="password"
           error={
             passwordsMatch === false
               ? "As senhas não coincidem"
@@ -125,6 +124,7 @@ export function RegisterForm() {
           }
         />
       </div>
+
       <div className="pt-1">
         <div className="flex items-start gap-2 text-sm">
           <input

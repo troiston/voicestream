@@ -4,6 +4,7 @@ import { VoiceStreamLogo } from "@/components/brand/voice-stream-logo"
 import { MobileMenu } from "./mobile-menu"
 
 const isDev = process.env.NODE_ENV === "development"
+const showDemo = process.env.NODE_ENV !== "production"
 
 const mainLinks: { href: string; label: string }[] = [
   { href: "/#features", label: "Recursos" },
@@ -67,12 +68,14 @@ export function Navbar() {
           >
             Entrar
           </Link>
-          <Link
-            href="/demo"
-            className="hidden sm:inline-flex px-3 py-2 text-sm font-medium text-brand transition-colors hover:text-brand-hover"
-          >
-            Ver demo
-          </Link>
+          {showDemo && (
+            <Link
+              href="/demo"
+              className="hidden sm:inline-flex px-3 py-2 text-sm font-medium text-brand transition-colors hover:text-brand-hover"
+            >
+              Ver demo
+            </Link>
+          )}
           <Link
             href="/register"
             className="btn-gradient rounded-[var(--radius-md)] px-4 py-1.5 text-sm font-semibold whitespace-nowrap"

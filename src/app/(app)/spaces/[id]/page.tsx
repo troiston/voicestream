@@ -5,7 +5,7 @@ import { requireSession } from "@/features/auth/guards";
 import { db } from "@/lib/db";
 import { getAccessibleSpaceIds } from "@/features/spaces/access";
 import { SpaceDetailView } from "@/components/app/space-detail-view";
-import type { MockSpace, MockSpaceFeedItem } from "@/lib/mocks/spaces";
+import type { SpaceItem, SpaceFeedItem } from "@/types/domain";
 import { decryptTranscriptIfNeeded } from "@/lib/crypto/transcripts";
 
 type PageProps = { params: Promise<{ id: string }> };
@@ -51,8 +51,7 @@ export default async function SpaceDetailPage({ params }: PageProps) {
     take: 20,
   });
 
-  // Adapt to MockSpaceFeedItem shape
-  const feed: MockSpaceFeedItem[] = recordings.map(r => {
+  const feed: SpaceFeedItem[] = recordings.map(r => {
     const decrypted = decryptTranscriptIfNeeded(r.transcription, r.userId);
     return {
       id: r.id,
@@ -64,13 +63,12 @@ export default async function SpaceDetailPage({ params }: PageProps) {
     };
   });
 
-  // Adapt space to MockSpace shape
-  const adaptedSpace: MockSpace = {
+  const adaptedSpace: SpaceItem = {
     id: space.id,
     name: space.name,
     description: space.description || '',
     lastActivity: space.updatedAt.toISOString(),
-    members: 1,
+    memberCount: 1,
     color: space.color || 'oklch(58% 0.1 240)',
     icon: space.icon || 'default'
   };

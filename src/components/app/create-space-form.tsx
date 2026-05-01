@@ -3,14 +3,14 @@
 import { useActionState, useEffect, useId } from "react";
 
 import { createSpaceAction, type CreateSpaceState } from "@/features/spaces/actions";
-import type { MockSpace } from "@/lib/mocks/spaces";
+import type { SpaceItem } from "@/types/domain";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Alert } from "@/components/ui/alert";
 
 export interface CreateSpaceFormProps {
-  onSuccess: (space: MockSpace) => void;
+  onSuccess: (space: SpaceItem) => void;
   onCancel: () => void;
 }
 

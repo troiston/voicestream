@@ -59,25 +59,25 @@ export type DashboardActivityItem = {
 export const DASHBOARD_RECENT_ACTIVITY: readonly DashboardActivityItem[] = [
   {
     id: "a1",
-    title: "Transcrição concluída no Espaço «Produto Q2»",
+    title: "Nova gravação no espaço Produto Q2",
     meta: "há 12 min",
     tone: "success",
   },
   {
     id: "a2",
-    title: "Intent «Follow-up cliente X» aguarda confirmação",
+    title: "Tarefa criada: Follow-up cliente X",
     meta: "há 48 min",
     tone: "warning",
   },
   {
     id: "a3",
-    title: "Resumo publicado no Slack #voz-equipe",
+    title: "Você criou o espaço Equipa de Voz",
     meta: "há 2 h",
     tone: "default",
   },
   {
     id: "a4",
-    title: "Gravação local sincronizada (buffer reenviado)",
+    title: "Gravação sincronizada com sucesso",
     meta: "ontem",
     tone: "default",
   },

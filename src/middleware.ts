@@ -1,6 +1,16 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
+function getS3PublicOrigin(): string | null {
+  const raw = process.env.S3_PUBLIC_ENDPOINT ?? process.env.S3_ENDPOINT;
+  if (!raw) return null;
+  try {
+    return new URL(raw).origin;
+  } catch {
+    return null;
+  }
+}
+
 export function middleware(request: NextRequest) {
   const requestHeaders = new Headers(request.headers);
   const isDev = process.env.NODE_ENV === "development";
@@ -9,8 +19,18 @@ export function middleware(request: NextRequest) {
     return NextResponse.next({ request: { headers: requestHeaders } });
   }
 
-  // CSP temporariamente simplificada (sem nonce), para não quebrar os scripts do Next/App Router.
-  // Quando integrarmos nonce corretamente no App Router, podemos reintroduzir uma policy mais restritiva.
+  const s3Origin = getS3PublicOrigin();
+
+  const connectSrc = [
+    "'self'",
+    "https://api.stripe.com",
+    "https://*.stripe.com",
+    "https://static.cloudflareinsights.com",
+    s3Origin,
+  ]
+    .filter(Boolean)
+    .join(" ");
+
   const csp = [
     "default-src 'self'",
     "base-uri 'self'",
@@ -18,10 +38,11 @@ export function middleware(request: NextRequest) {
     "frame-ancestors 'none'",
     "form-action 'self'",
     "img-src 'self' data: https: blob:",
-    "font-src 'self' data:",
-    "style-src 'self' 'unsafe-inline'",
-    "script-src 'self' 'unsafe-inline' https://js.stripe.com https://*.stripe.com",
-    "connect-src 'self' https://api.stripe.com https://*.stripe.com",
+    "media-src 'self' blob:",
+    "font-src 'self' data: https://fonts.gstatic.com",
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+    "script-src 'self' 'unsafe-inline' https://js.stripe.com https://*.stripe.com https://static.cloudflareinsights.com",
+    `connect-src ${connectSrc}`,
     "frame-src 'self' https://js.stripe.com https://hooks.stripe.com",
     "upgrade-insecure-requests",
   ].join("; ");

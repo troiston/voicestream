@@ -10,17 +10,37 @@ import { cn } from "@/lib/utils";
 export interface BillingUpgradeDialogProps {
   className?: string;
   currentPlan?: "free" | "pro" | "enterprise";
+  /** Pre-select a target plan and trigger checkout directly (skips comparison dialog). */
+  targetPlan?: "pro" | "enterprise";
+  /** Button label override (used when targetPlan is set). */
+  buttonLabel?: string;
+  /** Button variant override. */
+  buttonVariant?: "primary" | "secondary";
+  /** Extra classes for the trigger button. */
+  buttonClassName?: string;
 }
 
-export function BillingUpgradeDialog({ className, currentPlan = "free" }: BillingUpgradeDialogProps) {
+export function BillingUpgradeDialog({
+  className,
+  currentPlan = "free",
+  targetPlan,
+  buttonLabel,
+  buttonVariant = "primary",
+  buttonClassName,
+}: BillingUpgradeDialogProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const titleId = useId();
   const descId = useId();
 
   const open = useCallback(() => {
+    if (targetPlan) {
+      // Direct checkout — skip comparison dialog
+      void handleUpgrade(targetPlan);
+      return;
+    }
     setIsOpen(true);
-  }, []);
+  }, [targetPlan]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const close = useCallback(() => {
     setIsOpen(false);
@@ -75,8 +95,15 @@ export function BillingUpgradeDialog({ className, currentPlan = "free" }: Billin
 
   return (
     <div className={cn(className)}>
-      <Button type="button" variant="primary" size="md" className="min-h-11" onClick={open}>
-        Comparar e subir de plano
+      <Button
+        type="button"
+        variant={buttonVariant}
+        size="md"
+        className={cn("min-h-11", buttonClassName)}
+        onClick={open}
+        disabled={isLoading}
+      >
+        {isLoading ? "Processando..." : (buttonLabel ?? "Comparar e subir de plano")}
       </Button>
       {isOpen ? (
         <div className="fixed inset-0 z-50" role="presentation">

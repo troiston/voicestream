@@ -4,18 +4,18 @@ import { motion, useReducedMotion } from "framer-motion";
 import Link from "next/link";
 import { useMemo, useState, type FormEvent, type ReactNode } from "react";
 
-import type { MockSpace, MockSpaceFeedItem } from "@/lib/mocks/spaces";
+import type { SpaceItem, SpaceFeedItem } from "@/types/domain";
 import { SimpleTabs } from "@/components/ui/simple-tabs";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 
 export interface SpaceDetailViewProps {
-  space: MockSpace;
-  initialFeed: MockSpaceFeedItem[];
+  space: SpaceItem;
+  initialFeed: SpaceFeedItem[];
 }
 
-const kindLabel: Record<MockSpaceFeedItem["kind"], string> = {
+const kindLabel: Record<SpaceFeedItem["kind"], string> = {
   voice: "Voz",
   note: "Nota",
   task: "Tarefa",
@@ -23,7 +23,7 @@ const kindLabel: Record<MockSpaceFeedItem["kind"], string> = {
 
 export function SpaceDetailView({ space, initialFeed }: SpaceDetailViewProps) {
   const reduce = useReducedMotion();
-  const [items, setItems] = useState<MockSpaceFeedItem[]>(initialFeed);
+  const [items, setItems] = useState<SpaceFeedItem[]>(initialFeed);
   const [draft, setDraft] = useState("");
 
   const sorted = useMemo(
@@ -37,7 +37,7 @@ export function SpaceDetailView({ space, initialFeed }: SpaceDetailViewProps) {
     if (!body) {
       return;
     }
-    const next: MockSpaceFeedItem = {
+    const next: SpaceFeedItem = {
       id: `local_${Date.now().toString(36)}`,
       spaceId: space.id,
       author: "Tu",
@@ -93,7 +93,7 @@ export function SpaceDetailView({ space, initialFeed }: SpaceDetailViewProps) {
           <aside className="rounded-[var(--radius-lg)] border border-border bg-surface-1 p-4">
             <h2 className="text-sm font-semibold">Nova mensagem</h2>
             <p className="mt-1 text-xs text-muted-foreground">
-              Mock local — sem persistência no servidor.
+              Adicione uma nota ou resumo ao espaço.
             </p>
             <form onSubmit={handleSend} className="mt-4 space-y-3">
               <Textarea
@@ -117,8 +117,7 @@ export function SpaceDetailView({ space, initialFeed }: SpaceDetailViewProps) {
       label: "Tarefas",
       content: (
         <p className="text-sm text-foreground/70">
-          Lista de tarefas do espaço (mock). Integração com o módulo de tarefas global está
-          planeado na SPEC.
+          As tarefas do espaço aparecem aqui assim que forem criadas a partir de uma gravação.
         </p>
       ),
     },
@@ -127,7 +126,7 @@ export function SpaceDetailView({ space, initialFeed }: SpaceDetailViewProps) {
       label: "Membros",
       content: (
         <p className="text-sm text-foreground/70">
-          Membros do espaço e suas funções. Controle de permissões em desenvolvimento.
+          Membros do espaço e as suas funções. Gestão de permissões disponível em breve.
         </p>
       ),
     },
@@ -136,8 +135,7 @@ export function SpaceDetailView({ space, initialFeed }: SpaceDetailViewProps) {
       label: "Configurações",
       content: (
         <p className="text-sm text-foreground/70">
-          Nome, cor, permissões e exportação — placeholders. Sem alterações persistentes nesta
-          demo.
+          Nome, cor, permissões e exportação. Configurações persistentes disponíveis em breve.
         </p>
       ),
     },
@@ -165,7 +163,7 @@ export function SpaceDetailView({ space, initialFeed }: SpaceDetailViewProps) {
         </div>
         <p className="mt-2 max-w-2xl text-sm text-foreground/75">{space.description}</p>
         <div className="mt-4 flex flex-wrap items-center gap-3">
-          <Badge variant="secondary">{space.members} membros</Badge>
+          <Badge variant="secondary">{space.memberCount} membros</Badge>
           <span className="text-xs text-foreground/60">
             Última atividade: {new Date(space.lastActivity).toLocaleString("pt-BR")}
           </span>

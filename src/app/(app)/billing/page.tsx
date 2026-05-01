@@ -6,6 +6,7 @@ import { PortalButton } from "@/components/app/portal-button";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Progress } from "@/components/ui/progress";
 import { requireSession } from "@/features/auth/guards";
 import { getCurrentPlan } from "@/lib/billing/get-current-plan";
@@ -123,10 +124,10 @@ async function BillingContent(props: { checkoutStatus: string | null }) {
                 key={planKey}
                 className={
                   isRecommended
-                    ? "gradient-border rounded-[var(--radius-xl)] p-5"
+                    ? "gradient-border flex flex-col rounded-[var(--radius-xl)] p-5"
                     : isCurrent
-                      ? "rounded-[var(--radius-xl)] border border-brand/30 bg-brand/10 p-5"
-                      : "rounded-[var(--radius-xl)] border border-border/60 bg-surface-1 p-5"
+                      ? "flex flex-col rounded-[var(--radius-xl)] border border-brand/30 bg-brand/10 p-5"
+                      : "flex flex-col rounded-[var(--radius-xl)] border border-border/60 bg-surface-1 p-5"
                 }
               >
                 <div className="flex items-center justify-between gap-2">
@@ -142,7 +143,7 @@ async function BillingContent(props: { checkoutStatus: string | null }) {
                   {price}
                   <span className="text-base font-normal text-muted-foreground">/mês</span>
                 </p>
-                <ul className="mt-4 space-y-2">
+                <ul className="mt-4 flex-1 space-y-2">
                   {features.map((f) => (
                     <li key={f} className="flex items-center gap-2 text-sm text-muted-foreground">
                       <svg
@@ -159,15 +160,14 @@ async function BillingContent(props: { checkoutStatus: string | null }) {
                     </li>
                   ))}
                 </ul>
-                {!isCurrent && (
-                  <Button
-                    type="button"
-                    variant="primary"
-                    size="sm"
-                    className={`mt-6 w-full min-h-11 ${isRecommended ? "btn-gradient" : ""}`}
-                  >
-                    Fazer upgrade
-                  </Button>
+                {!isCurrent && planKey !== "free" && (
+                  <BillingUpgradeDialog
+                    currentPlan={currentPlanKey}
+                    targetPlan={planKey}
+                    buttonLabel="Fazer upgrade"
+                    buttonVariant="primary"
+                    buttonClassName={`mt-6 w-full min-h-11 text-sm${isRecommended ? " btn-gradient" : ""}`}
+                  />
                 )}
                 {isCurrent && (
                   <Button
@@ -277,22 +277,6 @@ async function BillingContent(props: { checkoutStatus: string | null }) {
         </Card>
       </section>
 
-      {/* Portal link */}
-      <section aria-labelledby="portal-heading">
-        <Card className="border border-border/60 bg-surface-1">
-          <CardHeader>
-            <h2 id="portal-heading" className="text-lg font-semibold tracking-tight text-foreground">
-              Gerenciar pagamento
-            </h2>
-          </CardHeader>
-          <CardContent>
-            <p className="mb-4 text-sm text-muted-foreground">
-              Acesse o portal de billing do Stripe para gerenciar seus métodos de pagamento e assinatura.
-            </p>
-            <PortalButton variant="primary">Abrir portal de billing</PortalButton>
-          </CardContent>
-        </Card>
-      </section>
     </div>
   );
 }
@@ -304,7 +288,19 @@ export default async function BillingPage({
 }) {
   const params = await searchParams;
   return (
-    <Suspense fallback={<div className="space-y-8">Carregando...</div>}>
+    <Suspense
+      fallback={
+        <div className="space-y-8">
+          <Skeleton className="h-32 w-full" />
+          <div className="grid gap-4 md:grid-cols-3">
+            <Skeleton className="h-64" />
+            <Skeleton className="h-64" />
+            <Skeleton className="h-64" />
+          </div>
+          <Skeleton className="h-48 w-full" />
+        </div>
+      }
+    >
       <BillingContent checkoutStatus={params.checkout ?? null} />
     </Suspense>
   );

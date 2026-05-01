@@ -28,3 +28,4 @@ node_modules/
 # Temp
 *.tsbuildinfo
 .tmp/
+.env_prod

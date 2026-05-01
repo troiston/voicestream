@@ -6,15 +6,9 @@ export function PreferencesSection() {
     <Card className="border border-border/60 bg-surface-1 shadow-none">
       <CardHeader>
         <h2 className="text-base font-semibold tracking-tight text-foreground">Preferências</h2>
-        <CardDescription>Comportamento da app e densidade da UI (valores locais mock).</CardDescription>
+        <CardDescription>Comportamento da app e densidade da UI.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div>
-          <span className="text-sm font-medium text-foreground">Tema</span>
-          <p className="mt-1 text-xs text-muted-foreground">
-            O tema global continua no cabeçalho (ícone sol/lua). Aqui apenas documentação de intenção.
-          </p>
-        </div>
         <CheckboxField
           id="pref-compact"
           label="Lista compacta em tarefas e feeds"

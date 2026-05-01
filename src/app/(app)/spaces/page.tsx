@@ -6,7 +6,7 @@ import { db } from "@/lib/db";
 import { getAccessibleSpaceIds } from "@/features/spaces/access";
 import { SpacesListSkeleton } from "@/components/app/spaces-list-skeleton";
 import { SpacesPageClient } from "@/components/app/spaces-page-client";
-import type { MockSpace } from "@/lib/mocks/spaces";
+import type { SpaceItem } from "@/types/domain";
 
 export const metadata: Metadata = {
   title: "Espaços",
@@ -31,13 +31,12 @@ async function SpacesData() {
     orderBy: { updatedAt: 'desc' }
   });
 
-  // Adapt to MockSpace shape for component compatibility
-  const adaptedSpaces: MockSpace[] = spaces.map(s => ({
+  const adaptedSpaces: SpaceItem[] = spaces.map(s => ({
     id: s.id,
     name: s.name,
     description: s.description || '',
     lastActivity: s.updatedAt.toISOString(),
-    members: s._count.members,
+    memberCount: s._count.members,
     color: s.color || 'oklch(58% 0.1 240)',
     icon: s.icon || 'default'
   }));

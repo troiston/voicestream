@@ -4,13 +4,13 @@ import { createSpaceSchema } from "@/features/spaces/schemas";
 import { requireSession } from "@/features/auth/guards";
 import { db } from "@/lib/db";
 import type { ActionResult } from "@/features/auth/actions";
-import type { MockSpace } from "@/lib/mocks/spaces";
+import type { SpaceItem } from "@/types/domain";
 import { sendTeamInviteEmail } from "@/lib/email/send-helpers";
 import { env } from "@/lib/env";
 import crypto from "crypto";
 import { z } from "zod";
 
-export type CreateSpaceState = ActionResult<{ space: MockSpace }> | null;
+export type CreateSpaceState = ActionResult<{ space: SpaceItem }> | null;
 
 export async function createSpaceAction(
   _prev: CreateSpaceState,
@@ -56,18 +56,17 @@ export async function createSpaceAction(
       },
     });
 
-    // Adapt to MockSpace for response
-    const mockSpace: MockSpace = {
+    const spaceItem: SpaceItem = {
       id: space.id,
       name: space.name,
       description: space.description || "",
       lastActivity: space.createdAt.toISOString(),
-      members: 1,
+      memberCount: 1,
       color: space.color || "oklch(58% 0.1 240)",
       icon: space.icon || "default",
     };
 
-    return { ok: true, data: { space: mockSpace } };
+    return { ok: true, data: { space: spaceItem } };
   } catch (error) {
     console.error("Error creating space:", error);
     return {

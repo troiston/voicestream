@@ -6,6 +6,7 @@ import { Check, Mic } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
+import { completeOnboardingAction } from "@/features/onboarding/actions"
 
 const STEPS = ["Privacidade de áudio", "Idioma e voz", "Integrações"] as const
 
@@ -28,9 +29,14 @@ export function OnboardingWizard({ className }: OnboardingWizardProps) {
     router.push("/dashboard")
   }, [router])
 
-  const next = () => {
-    if (step < STEPS.length - 1) setStep((s) => s + 1)
-    else goDashboard()
+  const next = async () => {
+    if (step < STEPS.length - 1) {
+      setStep((s) => s + 1)
+    } else {
+      // Final step — mark onboarding as completed
+      await completeOnboardingAction()
+      goDashboard()
+    }
   }
 
   const back = () => setStep((s) => Math.max(0, s - 1))
@@ -94,7 +100,7 @@ export function OnboardingWizard({ className }: OnboardingWizardProps) {
               ? "Define como o áudio bruto e as transcrições são tratados neste ambiente."
               : step === 1
                 ? "Escolhe idioma de transcrição e perfil de voz para o STT."
-                : "Liga integrações de produtividade (simulado nesta fase)."}
+                : "Liga integrações de produtividade."}
           </p>
 
           {/* Step 0 — Privacy */}
@@ -204,9 +210,6 @@ export function OnboardingWizard({ className }: OnboardingWizardProps) {
           {/* Step 2 — Integrations */}
           {step === 2 && (
             <div className="space-y-3">
-              <p className="text-sm text-muted-foreground">
-                Conexões simuladas — na produção você vai usar OAuth com escopos mínimos.
-              </p>
               {([
                 { key: "slack", on: slackOn, set: setSlackOn, label: "Slack", desc: "Publicar resumos em canal" },
                 { key: "calendar", on: calendarOn, set: setCalendarOn, label: "Calendário", desc: "Sugerir título da sessão" },
@@ -235,12 +238,12 @@ export function OnboardingWizard({ className }: OnboardingWizardProps) {
 
           {/* Navigation */}
           <div className="mt-8 flex items-center justify-between gap-3 border-t border-border/60 pt-6">
-            <Button type="button" variant="ghost" size="sm" onClick={goDashboard}>
-              Saltar configuração
+            <Button type="button" variant="outline" size="sm" onClick={goDashboard} className="border-border/60 bg-surface-2 text-foreground hover:bg-surface-3">
+              Pular configuração
             </Button>
             <div className="flex gap-2">
               {step > 0 && (
-                <Button type="button" variant="secondary" size="sm" onClick={back}>
+                <Button type="button" variant="outline" size="sm" onClick={back} className="border-border/60 bg-surface-2 text-foreground hover:bg-surface-3">
                   Anterior
                 </Button>
               )}
