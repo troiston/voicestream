@@ -1,8 +1,10 @@
 version: "3.8"
 
 # VoiceStream production stack — Docker Swarm (managed via Portainer GitOps).
+# Sensitive values are passed as environment variables via Portainer's
+# "Environment variables" form (NOT Docker Swarm secrets).
 #
-# External infra (provisioned out-of-band, NOT defined here):
+# External infra (already provisioned on the swarm, NOT defined here):
 #   - Postgres   : reachable on `network_swarm_public` as `postgres:5432`
 #   - SeaweedFS  : reachable on `network_swarm_public` as `seaweedfs:8333`
 #   - Dragonfly  : reachable on `network_swarm_public` as `dragonfly:6379`
@@ -16,26 +18,31 @@ services:
       TZ: America/Manaus
       NODE_ENV: production
       BETTER_AUTH_URL: https://voicestream.com.br
+      NEXT_PUBLIC_APP_URL: https://voicestream.com.br
+      NEXT_PUBLIC_APP_NAME: VoiceStream
       S3_ENDPOINT: http://seaweedfs:8333
       S3_BUCKET: voicestream-recordings
       S3_FORCE_PATH_STYLE: "true"
-      NEXT_PUBLIC_APP_NAME: VoiceStream
       RESEND_FROM: alertas@voicestream.com.br
-    secrets:
-      - database_url
-      - better_auth_secret
-      - google_client_id
-      - google_client_secret
-      - resend_api_key
-      - s3_access_key
-      - s3_secret_key
-      - deepgram_api_key
-      - anthropic_api_key
-      - redis_url
-      - stripe_secret_key
-      - stripe_webhook_secret
-      - encryption_key
-      - sentry_dsn
+      LOG_LEVEL: info
+      # Sensíveis — preencher no formulário do Portainer (Environment variables):
+      DATABASE_URL: ${DATABASE_URL}
+      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
+      RESEND_API_KEY: ${RESEND_API_KEY}
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY}
+      S3_SECRET_KEY: ${S3_SECRET_KEY}
+      DEEPGRAM_API_KEY: ${DEEPGRAM_API_KEY}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+      REDIS_URL: ${REDIS_URL}
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY}
+      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET}
+      NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: ${NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY}
+      STRIPE_PRICE_PRO: ${STRIPE_PRICE_PRO}
+      STRIPE_PRICE_ENTERPRISE: ${STRIPE_PRICE_ENTERPRISE}
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY}
+      SENTRY_DSN: ${SENTRY_DSN}
     networks:
       - network_swarm_public
     healthcheck:
@@ -93,24 +100,26 @@ services:
       TZ: America/Manaus
       NODE_ENV: production
       BETTER_AUTH_URL: https://voicestream.com.br
+      NEXT_PUBLIC_APP_URL: https://voicestream.com.br
+      NEXT_PUBLIC_APP_NAME: VoiceStream
       S3_ENDPOINT: http://seaweedfs:8333
       S3_BUCKET: voicestream-recordings
       S3_FORCE_PATH_STYLE: "true"
-      NEXT_PUBLIC_APP_NAME: VoiceStream
       RESEND_FROM: alertas@voicestream.com.br
-    secrets:
-      - database_url
-      - better_auth_secret
-      - resend_api_key
-      - s3_access_key
-      - s3_secret_key
-      - deepgram_api_key
-      - anthropic_api_key
-      - redis_url
-      - stripe_secret_key
-      - stripe_webhook_secret
-      - encryption_key
-      - sentry_dsn
+      LOG_LEVEL: info
+      # Sensíveis — preencher no formulário do Portainer (Environment variables):
+      DATABASE_URL: ${DATABASE_URL}
+      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET}
+      RESEND_API_KEY: ${RESEND_API_KEY}
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY}
+      S3_SECRET_KEY: ${S3_SECRET_KEY}
+      DEEPGRAM_API_KEY: ${DEEPGRAM_API_KEY}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+      REDIS_URL: ${REDIS_URL}
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY}
+      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET}
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY}
+      SENTRY_DSN: ${SENTRY_DSN}
     networks:
       - network_swarm_public
     deploy:
@@ -135,34 +144,4 @@ services:
 networks:
   network_swarm_public:
     name: network_swarm_public
-    external: true
-
-secrets:
-  database_url:
-    external: true
-  better_auth_secret:
-    external: true
-  google_client_id:
-    external: true
-  google_client_secret:
-    external: true
-  resend_api_key:
-    external: true
-  s3_access_key:
-    external: true
-  s3_secret_key:
-    external: true
-  deepgram_api_key:
-    external: true
-  anthropic_api_key:
-    external: true
-  redis_url:
-    external: true
-  stripe_secret_key:
-    external: true
-  stripe_webhook_secret:
-    external: true
-  encryption_key:
-    external: true
-  sentry_dsn:
     external: true
