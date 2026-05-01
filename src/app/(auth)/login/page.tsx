@@ -4,7 +4,7 @@ import { LoginForm } from "@/components/auth/login-form"
 
 export const metadata: Metadata = {
   title: "Entrar",
-  description: "Aceda à sua conta CloudVoice.",
+  description: "Aceda à sua conta VoiceStream.",
   robots: { index: false, follow: false },
   alternates: { canonical: "/login" },
 }
@@ -15,7 +15,7 @@ export default function LoginPage() {
       <div className="text-center">
         <h1 className="text-2xl font-bold tracking-tight">Bem-vindo de volta</h1>
         <p className="mt-1.5 text-sm text-muted-foreground">
-          Entre na sua conta CloudVoice
+          Entre na sua conta VoiceStream
         </p>
       </div>
 

@@ -1,5 +1,5 @@
 import Link from "next/link"
-import { CloudVoiceLogo } from "@/components/brand/cloud-voice-logo"
+import { VoiceStreamLogo } from "@/components/brand/voice-stream-logo"
 
 const colunas: Record<string, { label: string; href: string }[]> = {
   Produto: [
@@ -33,16 +33,16 @@ export function Footer() {
             <Link
               href="/"
               className="inline-flex items-center"
-              aria-label="CloudVoice, página inicial"
+              aria-label="VoiceStream, página inicial"
             >
-              <CloudVoiceLogo size="sm" />
+              <VoiceStreamLogo size="sm" />
             </Link>
             <p className="mt-3 text-sm text-muted-foreground max-w-xs">
               Copiloto de vida com Espaços para cada contexto. Voz, texto e tarefa num só lugar.
             </p>
             <p className="mt-3 text-xs text-muted-foreground/60">
-              <a className="hover:text-foreground transition-colors" href="mailto:hello@cloudvoice.com.br">
-                hello@cloudvoice.com.br
+              <a className="hover:text-foreground transition-colors" href="mailto:hello@voicestream.com.br">
+                hello@voicestream.com.br
               </a>
             </p>
           </div>
@@ -65,7 +65,7 @@ export function Footer() {
           ))}
         </div>
         <div className="mt-12 border-t border-border/40 pt-8 text-center text-xs text-muted-foreground/50">
-          &copy; {new Date().getFullYear()} CloudVoice. Todos os direitos reservados.
+          &copy; {new Date().getFullYear()} VoiceStream. Todos os direitos reservados.
         </div>
       </div>
     </footer>

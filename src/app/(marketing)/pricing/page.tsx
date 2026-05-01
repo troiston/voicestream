@@ -9,7 +9,7 @@ import { PriceToggle } from "@/components/marketing/price-toggle";
 import { FAQ, faqItens } from "./faq-section";
 
 const site = () => process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") ?? "http://localhost:3000";
-const app = process.env.NEXT_PUBLIC_APP_NAME ?? "CloudVoice";
+const app = process.env.NEXT_PUBLIC_APP_NAME ?? "VoiceStream";
 
 type Tier = {
   name: string;
@@ -66,7 +66,7 @@ const tiers: Tier[] = [
       "Trilha de auditoria",
       "Relatórios de uso",
     ],
-    cta: { label: "Falar com vendas", href: "mailto:vendas@cloudvoice.com.br" },
+    cta: { label: "Falar com vendas", href: "mailto:vendas@voicestream.com.br" },
   },
   {
     name: "Empresa",
@@ -81,7 +81,7 @@ const tiers: Tier[] = [
       "Política de retenção customizada",
       "Onboarding dedicado",
     ],
-    cta: { label: "Pedir reunião", href: "mailto:vendas@cloudvoice.com.br" },
+    cta: { label: "Pedir reunião", href: "mailto:vendas@voicestream.com.br" },
   },
 ];
 
@@ -126,7 +126,7 @@ export default function PricingPage() {
         data={productPricingJsonLd({
           name: `Planos ${app}`,
           url: `${s}/pricing`,
-          description: "Planos e preços em reais (BRL) do CloudVoice.",
+          description: "Planos e preços em reais (BRL) do VoiceStream.",
           offers: tiers.map((t) => ({
             name: t.name,
             price: String(isAnnual ? t.annualPrice : t.monthlyPrice) || "0",

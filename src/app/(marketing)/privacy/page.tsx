@@ -20,13 +20,13 @@ const toc = [
 export const metadata: Metadata = {
   title: "Política de Privacidade",
   description:
-    "Política de Privacidade do CloudVoice: responsável, dados tratados, finalidades, bases legais RGPD/LGPD, conservação, direitos, transferências, cookies e contato do DPO.",
+    "Política de Privacidade do VoiceStream: responsável, dados tratados, finalidades, bases legais RGPD/LGPD, conservação, direitos, transferências, cookies e contato do DPO.",
   alternates: {
     canonical: "/privacy",
   },
   openGraph: {
     url: "/privacy",
-    title: "Política de Privacidade | CloudVoice",
+    title: "Política de Privacidade | VoiceStream",
     description:
       "Informação sobre tratamento de dados pessoais no âmbito do Regulamento (UE) 2016/679 (RGPD) e da Lei n.º 13.709/2018 (LGPD — Brasil), quando aplicável.",
   },
@@ -49,8 +49,8 @@ export default function PrivacyPage() {
         Última atualização: <time dateTime={LAST_UPDATED}>{LAST_UPDATED}</time>.
       </p>
       <p className="mt-4 text-sm leading-relaxed text-muted-foreground">
-        Esta Política de Privacidade descreve como a entidade que opera o serviço CloudVoice
-        («CloudVoice», «nós» ou «nos») trata dados pessoais quando utiliza o nosso website,
+        Esta Política de Privacidade descreve como a entidade que opera o serviço VoiceStream
+        («VoiceStream», «nós» ou «nos») trata dados pessoais quando utiliza o nosso website,
         aplicações e serviços associados («Serviço»). O responsável pelo tratamento é a sociedade
         ou entidade identificada no website (dados societários, NIPC/NIF e sede) ou no contrato de
         prestação de serviços que celebrar connosco; em caso de divergência, prevalecem os dados
@@ -124,7 +124,7 @@ export default function PrivacyPage() {
             <li>
               <strong className="text-foreground">Dados de faturação:</strong> quando subscreve
               planos pagos, dados de faturação e pagamento processados pelo prestador de pagamentos
-              (a CloudVoice não armazena o número completo do cartão nos seus servidores, salvo
+              (a VoiceStream não armazena o número completo do cartão nos seus servidores, salvo
               indicação em contrário na interface de checkout).
             </li>
             <li>
@@ -213,8 +213,8 @@ export default function PrivacyPage() {
           </p>
           <p className="mt-4">
             Para exercer direitos, contacte{" "}
-            <a className="text-brand hover:text-brand-hover underline transition-colors" href="mailto:privacidade@cloudvoice.com.br">
-              privacidade@cloudvoice.com.br
+            <a className="text-brand hover:text-brand-hover underline transition-colors" href="mailto:privacidade@voicestream.com.br">
+              privacidade@voicestream.com.br
             </a>
             . Pode apresentar reclamação à autoridade de controle da sua residência, trabalho ou do
             local da infração (em Portugal, Comissão Nacional de Proteção de Dados —{" "}
@@ -276,8 +276,8 @@ export default function PrivacyPage() {
           <address className="mt-4 not-italic text-foreground/90">
             <p className="m-0">
               E-mail:{" "}
-              <a className="text-brand hover:text-brand-hover underline transition-colors" href="mailto:privacidade@cloudvoice.com.br">
-                privacidade@cloudvoice.com.br
+              <a className="text-brand hover:text-brand-hover underline transition-colors" href="mailto:privacidade@voicestream.com.br">
+                privacidade@voicestream.com.br
               </a>
             </p>
             <p className="mt-2 m-0 text-foreground/70">

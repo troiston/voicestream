@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1.7
 
 # Stage 1 — dependências
-FROM node:22.11-alpine AS deps
+FROM node:22.13-alpine AS deps
 RUN apk add --no-cache libc6-compat
 WORKDIR /app
 COPY package.json package-lock.json ./
@@ -9,7 +9,7 @@ RUN --mount=type=cache,target=/root/.npm \
     npm ci --no-audit --no-fund
 
 # Stage 2 — build
-FROM node:22.11-alpine AS builder
+FROM node:22.13-alpine AS builder
 RUN apk add --no-cache libc6-compat
 WORKDIR /app
 ENV NEXT_TELEMETRY_DISABLED=1
@@ -17,10 +17,29 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 # Gera Prisma Client antes do build do Next
 RUN npx prisma generate
+
+# Dummy env vars para satisfazer Zod validation em src/lib/env.ts durante `next build`.
+# Em runtime, o entrypoint sobrescreve com valores reais lidos de /run/secrets/*.
+ENV DATABASE_URL=postgresql://build:build@localhost:5432/build \
+    NEXT_PUBLIC_APP_URL=https://voicestream.com.br \
+    BETTER_AUTH_SECRET=build_time_dummy_secret_min_16_chars \
+    BETTER_AUTH_URL=https://voicestream.com.br \
+    S3_ENDPOINT=http://localhost:8333 \
+    S3_ACCESS_KEY=build \
+    S3_SECRET_KEY=build \
+    S3_BUCKET=build \
+    DEEPGRAM_API_KEY=build \
+    REDIS_URL=redis://localhost:6379 \
+    ANTHROPIC_API_KEY=build \
+    ENCRYPTION_KEY=AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA= \
+    STRIPE_SECRET_KEY=sk_build_dummy \
+    STRIPE_WEBHOOK_SECRET=whsec_build_dummy \
+    NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_build_dummy
+
 RUN npm run build
 
 # Stage 3 — runtime
-FROM node:22.11-alpine AS runner
+FROM node:22.13-alpine AS runner
 RUN apk add --no-cache libc6-compat curl tini
 WORKDIR /app
 

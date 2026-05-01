@@ -4,7 +4,7 @@ import { RegisterForm } from "@/components/auth/register-form"
 
 export const metadata: Metadata = {
   title: "Criar conta",
-  description: "Crie a sua conta CloudVoice.",
+  description: "Crie a sua conta VoiceStream.",
   robots: { index: false, follow: false },
   alternates: { canonical: "/register" },
 }

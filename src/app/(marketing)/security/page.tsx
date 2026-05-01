@@ -20,7 +20,7 @@ const subprocessors: { name: string; purpose: string; region: string }[] = [
 export const metadata: Metadata = {
   title: "Segurança e confiança",
   description:
-    "Pilares de segurança, certificações em roteiro, subprocessadores e contato de segurança (CloudVoice).",
+    "Pilares de segurança, certificações em roteiro, subprocessadores e contato de segurança (VoiceStream).",
   alternates: { canonical: "/security" },
   openGraph: { url: "/security" },
 };
@@ -127,8 +127,8 @@ export default function SecurityPage() {
         </h2>
         <p className="mt-2 text-sm text-muted-foreground">
           E-mail:{" "}
-          <a className="min-h-11 text-brand hover:text-brand-hover underline transition-colors" href="mailto:security@cloudvoice.com.br">
-            security@cloudvoice.com.br
+          <a className="min-h-11 text-brand hover:text-brand-hover underline transition-colors" href="mailto:security@voicestream.com.br">
+            security@voicestream.com.br
           </a>{" "}
           (fila de triagem, sem SLA pública nesta fase).
         </p>

@@ -30,7 +30,7 @@ import { useCallback, useEffect, useState, type ReactNode } from "react"
 
 import { logoutAction } from "@/features/auth/actions"
 import { APP_NAV } from "@/lib/nav/app-nav"
-import { CloudVoiceLogo } from "@/components/brand/cloud-voice-logo"
+import { VoiceStreamLogo } from "@/components/brand/voice-stream-logo"
 import { AppBreadcrumbs } from "./app-breadcrumbs"
 import { Button } from "@/components/ui/button"
 import { ThemeToggle } from "@/components/ui/theme-toggle"
@@ -179,7 +179,7 @@ export function AppShell({
             "flex h-16 shrink-0 items-center border-b border-border/60",
             collapsed ? "justify-center px-2" : "px-4"
           )}>
-            <CloudVoiceLogo size="sm" showWordmark={!collapsed} priority />
+            <VoiceStreamLogo size="sm" showWordmark={!collapsed} priority />
           </div>
 
           {/* Nav */}
@@ -390,7 +390,7 @@ export function AppShell({
           <SheetContent side="left" className="w-[15rem] bg-surface-1/95 backdrop-blur-xl border-r border-border/60 p-0">
             <SheetHeader className="border-b border-border/60 px-4 py-4">
               <SheetTitle className="text-left">
-                <CloudVoiceLogo size="sm" />
+                <VoiceStreamLogo size="sm" />
               </SheetTitle>
             </SheetHeader>
             <nav className="p-2 space-y-0.5">

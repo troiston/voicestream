@@ -6,7 +6,7 @@ import { JsonLd, organizationJsonLd } from "@/components/seo/jsonld";
 export default function MarketingLayout({ children }: { children: ReactNode }) {
   const siteUrl =
     process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") ?? "http://localhost:3000";
-  const orgName = process.env.NEXT_PUBLIC_APP_NAME ?? "CloudVoice";
+  const orgName = process.env.NEXT_PUBLIC_APP_NAME ?? "VoiceStream";
 
   return (
     <>

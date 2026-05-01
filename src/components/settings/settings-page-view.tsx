@@ -63,7 +63,7 @@ export function SettingsPageView() {
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Configurações</h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          Preferências da conta e do produto CloudVoice. Dados são mock até a fase de backend.
+          Preferências da conta e do produto VoiceStream. Dados são mock até a fase de backend.
         </p>
       </div>
 

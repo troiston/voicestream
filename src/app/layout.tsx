@@ -18,9 +18,9 @@ const geistMono = Geist_Mono({
 const appUrl =
   process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") ??
   "http://localhost:3000";
-const appName = process.env.NEXT_PUBLIC_APP_NAME ?? "CloudVoice";
+const appName = process.env.NEXT_PUBLIC_APP_NAME ?? "VoiceStream";
 const defaultDescription =
-  "CloudVoice — copiloto de vida que organiza conversas, decisões e tarefas em Espaços, com privacidade por contexto.";
+  "VoiceStream — copiloto de vida que organiza conversas, decisões e tarefas em Espaços, com privacidade por contexto.";
 
 export const metadata: Metadata = {
   metadataBase: new URL(appUrl),

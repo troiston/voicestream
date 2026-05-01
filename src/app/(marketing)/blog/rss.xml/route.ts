@@ -40,7 +40,7 @@ export function GET(): Response {
   const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
-    <title>CloudVoice — Blog</title>
+    <title>VoiceStream — Blog</title>
     <link>${escapeXml(blogUrl)}</link>
     <description>Artigos sobre produto, voz e segurança.</description>
     <language>pt-BR</language>

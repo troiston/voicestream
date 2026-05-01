@@ -8,7 +8,7 @@ const site = () => process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") ?? "http:
 
 export const metadata: Metadata = {
   title: "Contato",
-  description: "Entre em contato com o time CloudVoice. Responderemos assim que possível.",
+  description: "Entre em contato com o time VoiceStream. Responderemos assim que possível.",
   alternates: { canonical: "/contact" },
   openGraph: { url: "/contact" },
 };
@@ -30,7 +30,7 @@ export default function ContactPage() {
         <div className="absolute inset-0 bg-grid-pattern opacity-30 pointer-events-none" aria-hidden />
         <div className="relative mx-auto max-w-3xl text-center">
           <h1 id="c-h1" className="text-4xl font-extrabold tracking-tight sm:text-5xl">
-            Fale com o <span className="gradient-text">CloudVoice</span>
+            Fale com o <span className="gradient-text">VoiceStream</span>
           </h1>
           <p className="mx-auto mt-4 max-w-2xl text-lg text-muted-foreground">
             Dúvidas? Sugestões? Quer agendar uma demonstração? Estamos aqui para ajudar.
@@ -57,10 +57,10 @@ export default function ContactPage() {
                 <h3 className="font-semibold text-foreground">Email</h3>
                 <p className="mt-1 text-sm text-muted-foreground">Para dúvidas gerais</p>
                 <a
-                  href="mailto:hello@cloudvoice.com.br"
+                  href="mailto:hello@voicestream.com.br"
                   className="mt-2 inline-block text-brand hover:text-brand-hover transition-colors font-medium text-sm"
                 >
-                  hello@cloudvoice.com.br
+                  hello@voicestream.com.br
                 </a>
               </div>
             </div>
@@ -72,10 +72,10 @@ export default function ContactPage() {
                 <h3 className="font-semibold text-foreground">Vendas & Planos</h3>
                 <p className="mt-1 text-sm text-muted-foreground">Informações sobre preços e contratos</p>
                 <a
-                  href="mailto:vendas@cloudvoice.com.br"
+                  href="mailto:vendas@voicestream.com.br"
                   className="mt-2 inline-block text-brand hover:text-brand-hover transition-colors font-medium text-sm"
                 >
-                  vendas@cloudvoice.com.br
+                  vendas@voicestream.com.br
                 </a>
               </div>
             </div>

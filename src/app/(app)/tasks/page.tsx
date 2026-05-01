@@ -1,28 +1,73 @@
 import type { Metadata } from "next";
 
-import { MOCK_TASKS } from "@/lib/mocks/tasks";
+import { requireSession } from "@/features/auth/guards";
+import { db } from "@/lib/db";
+import { getAccessibleSpaceIds } from "@/features/spaces/access";
 import { TasksView } from "@/components/tasks/tasks-view";
 
 export const metadata: Metadata = {
   title: "Tarefas",
-  description: "Lista, filtros e criação de tarefas (dados mock).",
+  description: "Gestão de tarefas com dados Prisma.",
   robots: {
     index: false,
     follow: false,
   },
 };
 
-export default function TasksPage() {
+export default async function TasksPage() {
+  const session = await requireSession();
+
+  // Get all spaces the user has access to
+  const accessibleSpaceIds = await getAccessibleSpaceIds(session.userId);
+
+  // Fetch tasks from accessible spaces
+  const tasks = await db.task.findMany({
+    where: {
+      spaceId: { in: accessibleSpaceIds },
+    },
+    include: {
+      space: { select: { name: true } },
+      recording: { select: { title: true, capturedAt: true } },
+    },
+    orderBy: { createdAt: "desc" },
+    take: 100,
+  });
+
+  // Get the first owned space for defaultSpaceId
+  const defaultSpace = await db.space.findFirst({
+    where: { ownerId: session.userId },
+    select: { id: true },
+  });
+
+  // Transform to TaskListItem format
+  const initialTasks = tasks.map((task) => ({
+    id: task.id,
+    title: task.title,
+    description: task.description,
+    status: task.status,
+    priority: task.priority,
+    dueAt: task.dueAt ? task.dueAt.toISOString().split("T")[0] : null,
+    spaceId: task.spaceId,
+    spaceName: task.space.name,
+    recordingId: task.recordingId,
+    recordingTitle: task.recording?.title ?? null,
+    recordingCapturedAt: task.recording?.capturedAt ? task.recording.capturedAt.toISOString().split("T")[0] : null,
+  }));
+
   return (
     <div className="space-y-8">
       <header>
         <h1 className="text-2xl font-bold tracking-tight">Tarefas</h1>
         <p className="mt-2 max-w-2xl text-foreground/60">
-          Gestão local com dados de demonstração. Utilize filtros, alterne entre tabela e cartões e crie
-          tarefas através do painel lateral — validação com Zod no servidor (mock).
+          Gestão de tarefas com dados persistidos. Utilize filtros, alterne entre tabela e cartões e crie
+          tarefas através do painel lateral.
         </p>
       </header>
-      <TasksView initialTasks={MOCK_TASKS} />
+      <TasksView
+        initialTasks={initialTasks}
+        defaultSpaceId={defaultSpace?.id ?? null}
+        userId={session.userId}
+      />
     </div>
   );
 }

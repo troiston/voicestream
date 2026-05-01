@@ -6,8 +6,8 @@ export default function IntegrationsLoading() {
       <header>
         <h1 className="text-2xl font-bold tracking-tight">Integrações</h1>
         <p className="mt-2 max-w-2xl text-foreground/60">
-          Ligue ferramentas externas ao CloudVoice. Abaixo vê um catálogo agrupado por categoria com estados
-          «conectado» ou «disponível» e um fluxo de ligação em 3 passos.
+          Conecte ferramentas externas ao VoiceStream. Abaixo vê um catálogo agrupado por categoria com estados
+          «conectado» ou «disponível» e um fluxo de conexão em 3 passos.
         </p>
       </header>
 

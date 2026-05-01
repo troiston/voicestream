@@ -3,7 +3,8 @@
 import { useMemo, useState, useCallback } from "react";
 import { Search, Grid3x3, Table as TableIcon } from "lucide-react";
 
-import type { MockTask, TaskPriority, TaskStatus } from "@/lib/mocks/tasks";
+import type { TaskListItem } from "@/types/domain";
+import type { TaskPriority, TaskStatus } from "@/generated/prisma/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { CreateTaskDrawer } from "./create-task-drawer";
@@ -12,13 +13,16 @@ import { TasksKanban } from "./tasks-kanban";
 import { cn } from "@/lib/utils";
 
 export interface TasksViewProps {
-  initialTasks: MockTask[];
+  initialTasks: TaskListItem[];
+  defaultSpaceId: string | null;
+  userId: string;
 }
 
 const STATUS_CONFIG: Record<TaskStatus, { label: string; variant: "success" | "default" | "warning" }> = {
   pendente: { label: "Pendente", variant: "warning" },
   em_curso: { label: "Em curso", variant: "default" },
   concluida: { label: "Concluída", variant: "success" },
+  cancelada: { label: "Cancelada", variant: "default" },
 };
 
 const PRIORITY_CONFIG: Record<TaskPriority, { label: string; variant: "danger" | "warning" | "info" }> = {
@@ -35,8 +39,8 @@ function statusVariant(s: TaskStatus): "success" | "default" | "warning" {
   return STATUS_CONFIG[s].variant;
 }
 
-export function TasksView({ initialTasks }: TasksViewProps) {
-  const [tasks, setTasks] = useState<MockTask[]>(initialTasks);
+export function TasksView({ initialTasks, defaultSpaceId, userId }: TasksViewProps) {
+  const [tasks, setTasks] = useState<TaskListItem[]>(initialTasks);
   const [statusFilter, setStatusFilter] = useState<"all" | TaskStatus>("all");
   const [priorityFilter, setPriorityFilter] = useState<"all" | TaskPriority>("all");
   const [searchQuery, setSearchQuery] = useState("");
@@ -127,6 +131,8 @@ export function TasksView({ initialTasks }: TasksViewProps) {
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <CreateTaskDrawer
+          defaultSpaceId={defaultSpaceId}
+          userId={userId}
           onCreated={(task) => {
             setTasks((prev) => [task, ...prev]);
           }}
@@ -182,7 +188,7 @@ export function TasksView({ initialTasks }: TasksViewProps) {
             <div className="mb-3">
               <p className="text-xs font-medium text-muted-foreground mb-2">Estado</p>
               <div className="flex flex-wrap gap-2">
-                {(["all", "pendente", "em_curso", "concluida"] as const).map((status) => (
+                {(["all", "pendente", "em_curso", "concluida", "cancelada"] as const).map((status) => (
                   <button
                     key={status}
                     type="button"
@@ -248,6 +254,8 @@ export function TasksView({ initialTasks }: TasksViewProps) {
           )}
           {!hasActiveFilters && (
             <CreateTaskDrawer
+              defaultSpaceId={defaultSpaceId}
+              userId={userId}
               onCreated={(task) => {
                 setTasks((prev) => [task, ...prev]);
               }}

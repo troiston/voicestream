@@ -3,7 +3,7 @@
 import { useActionState, useCallback, useEffect, useId, useRef, useState } from "react";
 
 import { createTaskAction, type CreateTaskActionState } from "@/server/actions/tasks";
-import type { MockTask } from "@/lib/mocks/tasks";
+import type { TaskListItem } from "@/types/domain";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -13,10 +13,12 @@ import { cn } from "@/lib/utils";
 const initial: CreateTaskActionState = { status: "idle" };
 
 export interface CreateTaskDrawerProps {
-  onCreated: (task: MockTask) => void;
+  onCreated: (task: TaskListItem) => void;
+  defaultSpaceId: string | null;
+  userId: string;
 }
 
-export function CreateTaskDrawer({ onCreated }: CreateTaskDrawerProps) {
+export function CreateTaskDrawer({ onCreated, defaultSpaceId, userId }: CreateTaskDrawerProps) {
   const titleId = useId();
   const [formKey, setFormKey] = useState(0);
   const [isOpen, setIsOpen] = useState(false);
@@ -79,6 +81,8 @@ export function CreateTaskDrawer({ onCreated }: CreateTaskDrawerProps) {
               <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4">
                 <CreateTaskForm
                   key={formKey}
+                  defaultSpaceId={defaultSpaceId}
+                  userId={userId}
                   onCancel={close}
                   onSuccess={(task) => {
                     onCreated(task);
@@ -97,11 +101,19 @@ export function CreateTaskDrawer({ onCreated }: CreateTaskDrawerProps) {
 function CreateTaskForm({
   onCancel,
   onSuccess,
+  defaultSpaceId,
+  userId,
 }: {
   onCancel: () => void;
-  onSuccess: (task: MockTask) => void;
+  onSuccess: (task: TaskListItem) => void;
+  defaultSpaceId: string | null;
+  userId: string;
 }) {
-  const [state, action, pending] = useActionState(createTaskAction, initial);
+  const [state, action, pending] = useActionState(
+    (prev: CreateTaskActionState, formData: FormData) =>
+      createTaskAction(prev, formData, defaultSpaceId, userId),
+    initial
+  );
   const titleRef = useRef<HTMLInputElement>(null);
   const formErrId = useId();
   const onSuccessRef = useRef(onSuccess);

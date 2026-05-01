@@ -3,32 +3,45 @@ import type { Metadata } from "next";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertTriangle } from "lucide-react";
 import { UsageDashboard } from "@/components/app/usage-dashboard";
+import { requireSession } from "@/features/auth/guards";
 import {
-  topIntents,
-  topSpaces,
-  usageLast30dByWeek,
-  usageLast7d,
-} from "@/lib/mocks/usage";
+  getUsageLast7d,
+  getUsageLast30dByWeek,
+  getTopIntents,
+  getTopSpaces,
+  getSubscriptionLimitAndUsage,
+} from "@/features/usage/actions";
 
 export const metadata: Metadata = {
   title: "Uso",
-  description: "Minutos, intents e espaços (dados mock).",
+  description: "Minutos, intents e espaços — dados reais de Prisma.",
   robots: { index: false, follow: false },
 };
 
-// Mock: 170 minutos usados de 200 = 85%
-const mockUsedMinutes = 170;
-const mockTotalMinutes = 200;
-const usagePercent = (mockUsedMinutes / mockTotalMinutes) * 100;
-const isHighUsage = usagePercent >= 80;
+export default async function UsagePage() {
+  const session = await requireSession();
+  const [
+    usageLast7d,
+    usageLast30dByWeek,
+    topIntents,
+    topSpaces,
+    subscriptionData,
+  ] = await Promise.all([
+    getUsageLast7d(session.userId),
+    getUsageLast30dByWeek(session.userId),
+    getTopIntents(session.userId),
+    getTopSpaces(session.userId),
+    getSubscriptionLimitAndUsage(session.userId),
+  ]);
 
-export default function UsagePage() {
+  const isHighUsage = subscriptionData.percentageUsed >= 80;
+
   return (
     <div className="space-y-8">
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Uso</h1>
         <p className="mt-2 text-foreground/60">
-          Visualização de consumo e exportação de relatório em CSV (mock, sem backend).
+          Visualização de consumo e exportação de relatório em CSV.
         </p>
       </div>
 
@@ -37,8 +50,10 @@ export default function UsagePage() {
           <AlertTriangle className="h-4 w-4" />
           <AlertTitle>Uso próximo do limite</AlertTitle>
           <AlertDescription>
-            Você utilizou {mockUsedMinutes} de {mockTotalMinutes} minutos ({Math.round(usagePercent)}%) neste ciclo.
-            Considere fazer upgrade para continuar usando o serviço sem limite.
+            Você utilizou {subscriptionData.usedMinutesThisMonth} de{" "}
+            {subscriptionData.limitMinutes} minutos (
+            {Math.round(subscriptionData.percentageUsed)}%) neste ciclo. Considere
+            fazer upgrade para continuar usando o serviço sem limite.
           </AlertDescription>
         </Alert>
       )}
@@ -48,6 +63,8 @@ export default function UsagePage() {
         series30d={usageLast30dByWeek}
         topIntents={topIntents}
         topSpaces={topSpaces}
+        subscriptionLimit={subscriptionData.limitMinutes}
+        subscriptionUsed={subscriptionData.usedMinutesThisMonth}
       />
     </div>
   );

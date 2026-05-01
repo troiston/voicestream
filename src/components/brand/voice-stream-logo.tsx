@@ -9,7 +9,7 @@ const SIZES = {
 
 type Size = keyof typeof SIZES
 
-export function CloudVoiceLogo({
+export function VoiceStreamLogo({
   size = "sm",
   priority = false,
   showWordmark = true,
@@ -25,7 +25,7 @@ export function CloudVoiceLogo({
     <span className={cn("inline-flex items-center gap-2", className)}>
       <Image
         src="/brand/logos/logo-01.png"
-        alt="CloudVoice"
+        alt="VoiceStream"
         width={w}
         height={h}
         priority={priority}
@@ -40,7 +40,7 @@ export function CloudVoiceLogo({
             size === "lg" && "text-2xl",
           )}
         >
-          CloudVoice
+          VoiceStream
         </span>
       )}
     </span>

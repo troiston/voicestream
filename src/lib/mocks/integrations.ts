@@ -18,7 +18,7 @@ export const MOCK_INTEGRATIONS: MockIntegration[] = [
     category: "Calendário",
     status: "connected",
     detail:
-      "Ligação ativa (mock). Os eventos criados no CloudVoice aparecem no Google Calendar com privacidade «Ocupado» por defeito.",
+      "Ligação ativa (mock). Os eventos criados no VoiceStream aparecem no Google Calendar com privacidade «Ocupado» por defeito.",
   },
   {
     id: "int_slack",
@@ -35,7 +35,7 @@ export const MOCK_INTEGRATIONS: MockIntegration[] = [
     description: "Exporte transcrições e tarefas para bases e páginas.",
     category: "Produtividade",
     status: "available",
-    detail: "Mapeia Espaços CloudVoice para bases Notion e mantém blocos sincronizados (mock de UI).",
+    detail: "Mapeia Espaços VoiceStream para bases Notion e mantém blocos sincronizados (mock de UI).",
   },
   {
     id: "int_microsoft_teams",
@@ -51,7 +51,7 @@ export const MOCK_INTEGRATIONS: MockIntegration[] = [
     description: "Associe conversas a negócios e contactos CRM.",
     category: "CRM",
     status: "connected",
-    detail: "Conta de demonstração ligada. Sincronização unidirecional CloudVoice → HubSpot (mock).",
+    detail: "Conta de demonstração ligada. Sincronização unidirecional VoiceStream → HubSpot (mock).",
   },
   {
     id: "int_zapier",

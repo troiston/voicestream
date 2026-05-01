@@ -81,7 +81,7 @@ export default async function OpenGraphImage() {
                   letterSpacing: "-0.02em",
                 }}
               >
-                CloudVoice
+                VoiceStream
               </div>
               <div
                 style={{ fontSize: "16px", color: "rgba(234,240,255,0.72)" }}

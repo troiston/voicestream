@@ -4,11 +4,12 @@ import { useMemo } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import type { MockTask, TaskStatus, TaskPriority } from "@/lib/mocks/tasks";
+import type { TaskListItem } from "@/types/domain";
+import type { TaskStatus, TaskPriority } from "@/generated/prisma/client";
 import { cn } from "@/lib/utils";
 
 interface TasksKanbanProps {
-  filteredTasks: MockTask[];
+  filteredTasks: TaskListItem[];
   selected: Set<string>;
   onSelectTask: (id: string) => void;
   statusConfig: Record<TaskStatus, { label: string }>;
@@ -30,11 +31,12 @@ export function TasksKanban({
     pendente: filteredTasks.filter((t) => t.status === "pendente"),
     em_curso: filteredTasks.filter((t) => t.status === "em_curso"),
     concluida: filteredTasks.filter((t) => t.status === "concluida"),
+    cancelada: filteredTasks.filter((t) => t.status === "cancelada"),
   }), [filteredTasks]);
 
   return (
     <div className="grid gap-4 lg:grid-cols-3">
-      {(["pendente", "em_curso", "concluida"] as const).map((status) => (
+      {(["pendente", "em_curso", "concluida", "cancelada"] as const).map((status) => (
         <div key={status} className="flex flex-col rounded-[var(--radius-lg)] border border-border/60 bg-surface-1 p-4 min-h-96">
           <div className="mb-4 flex items-center justify-between">
             <h3 className="text-sm font-semibold text-foreground">{statusConfig[status].label}</h3>

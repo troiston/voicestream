@@ -14,7 +14,7 @@ const LAST_UPDATED = "2026-04-20";
 
 export const metadata: Metadata = {
   title: "Política de cookies",
-  description: "Cookies e armazenamento local utilizados no site CloudVoice (MVP) e reabertura de preferências.",
+  description: "Cookies e armazenamento local utilizados no site VoiceStream (MVP) e reabertura de preferências.",
   alternates: { canonical: "/cookies" },
   openGraph: { url: "/cookies" },
 };

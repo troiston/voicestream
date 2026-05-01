@@ -1,40 +1,86 @@
-import { Suspense } from "react";
 import type { Metadata } from "next";
+import Link from "next/link";
 
+import { requireSession } from "@/features/auth/guards";
+import { db } from "@/lib/db";
 import { CaptureWorkspace } from "@/components/app/capture-workspace";
-import { Skeleton } from "@/components/ui/skeleton";
 
 export const metadata: Metadata = {
   title: "Captura",
-  description: "Gravação de voz com histórico e estados de fluxo.",
+  description: "Gravação de voz com upload e histórico.",
   robots: { index: false, follow: false },
 };
 
-async function CaptureData() {
-  const { mockCaptureHistory } = await import("@/lib/mocks/captures");
-  if (!process.env.CI) {
-    await new Promise((r) => setTimeout(r, 280));
-  }
-  return <CaptureWorkspace history={mockCaptureHistory} />;
-}
+export default async function CapturePage() {
+  const session = await requireSession();
+  const userId = session.userId;
 
-function CaptureSkeleton() {
-  return (
-    <div className="flex flex-col gap-6 lg:flex-row" aria-busy="true" aria-live="polite">
-      <div className="flex-1 space-y-4">
-        <Skeleton className="h-8 w-56" />
-        <Skeleton className="h-4 w-full max-w-lg" />
-        <Skeleton className="h-64 w-full rounded-[var(--radius-xl)]" />
+  // Spaces where user is owner OR active member
+  const spaces = await db.space.findMany({
+    where: {
+      isArchived: false,
+      OR: [
+        { ownerId: userId },
+        {
+          members: {
+            some: {
+              userId,
+              status: "active",
+            },
+          },
+        },
+      ],
+    },
+    select: { id: true, name: true, kind: true },
+    orderBy: { createdAt: "asc" },
+  });
+
+  if (spaces.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center gap-4 py-24 text-center">
+        <h1 className="text-2xl font-bold tracking-tight">Captura de voz</h1>
+        <p className="max-w-sm text-sm text-muted-foreground">
+          Você ainda não tem nenhum espaço. Crie um espaço primeiro para começar a gravar.
+        </p>
+        <Link
+          href="/spaces"
+          className="btn-gradient inline-flex items-center gap-2 rounded-[var(--radius-lg)] px-5 py-2.5 text-sm font-semibold"
+        >
+          Ir para Espaços
+        </Link>
       </div>
-      <Skeleton className="h-80 w-full shrink-0 lg:max-w-xs" />
-    </div>
-  );
-}
+    );
+  }
 
-export default function CapturePage() {
+  const spaceIds = spaces.map((s) => s.id);
+
+  const recordings = await db.recording.findMany({
+    where: { spaceId: { in: spaceIds } },
+    orderBy: { capturedAt: "desc" },
+    take: 20,
+    select: {
+      id: true,
+      title: true,
+      capturedAt: true,
+      durationSec: true,
+      status: true,
+      space: { select: { name: true } },
+    },
+  });
+
+  const history = recordings.map((r) => ({
+    id: r.id,
+    title: r.title,
+    capturedAt: r.capturedAt.toISOString(),
+    durationSec: r.durationSec,
+    status: r.status,
+    spaceName: r.space.name,
+  }));
+
   return (
-    <Suspense fallback={<CaptureSkeleton />}>
-      <CaptureData />
-    </Suspense>
+    <CaptureWorkspace
+      spaces={spaces.map((s) => ({ id: s.id, name: s.name, kind: s.kind }))}
+      history={history}
+    />
   );
 }

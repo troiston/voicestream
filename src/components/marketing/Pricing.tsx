@@ -29,7 +29,7 @@ const tiers = [
       "Onboarding assistido",
     ],
     cta: "Começar com Pro",
-    href: "mailto:hello@cloudvoice.com.br",
+    href: "mailto:hello@voicestream.com.br",
     highlighted: true,
   },
   {
@@ -43,7 +43,7 @@ const tiers = [
       "Playbooks e evidências de conformidade",
     ],
     cta: "Pedir reunião",
-    href: "mailto:hello@cloudvoice.com.br",
+    href: "mailto:hello@voicestream.com.br",
     highlighted: false,
   },
 ] as const
