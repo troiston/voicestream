@@ -20,7 +20,11 @@ const SECTIONS = [
   { id: "seguranca", label: "Segurança", icon: Shield },
 ] as const;
 
-export function SettingsPageView() {
+interface SettingsPageViewProps {
+  twoFactorEnabled?: boolean;
+}
+
+export function SettingsPageView({ twoFactorEnabled = false }: SettingsPageViewProps) {
   const [activeSection, setActiveSection] = useState<string>("perfil");
 
   // Scroll-spy: IntersectionObserver
@@ -145,7 +149,7 @@ export function SettingsPageView() {
           </section>
 
           <section id="seguranca">
-            <SecuritySection />
+            <SecuritySection twoFactorEnabled={twoFactorEnabled} />
           </section>
         </div>
       </div>

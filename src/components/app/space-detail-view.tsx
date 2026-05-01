@@ -4,15 +4,25 @@ import { motion, useReducedMotion } from "framer-motion";
 import Link from "next/link";
 import { useMemo, useState, type FormEvent, type ReactNode } from "react";
 
-import type { SpaceItem, SpaceFeedItem } from "@/types/domain";
+import type { SpaceItem, SpaceFeedItem, TaskListItem, TaskColumnItem } from "@/types/domain";
+import type { TaskPriority } from "@/generated/prisma/client";
 import { SimpleTabs } from "@/components/ui/simple-tabs";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { TasksKanban } from "@/components/tasks/tasks-kanban";
 
 export interface SpaceDetailViewProps {
   space: SpaceItem;
   initialFeed: SpaceFeedItem[];
+  initialTasks: TaskListItem[];
+  initialColumns: TaskColumnItem[];
+}
+
+function priorityVariant(p: TaskPriority): "danger" | "warning" | "info" {
+  if (p === "alta") return "danger";
+  if (p === "media") return "warning";
+  return "info";
 }
 
 const kindLabel: Record<SpaceFeedItem["kind"], string> = {
@@ -21,10 +31,12 @@ const kindLabel: Record<SpaceFeedItem["kind"], string> = {
   task: "Tarefa",
 };
 
-export function SpaceDetailView({ space, initialFeed }: SpaceDetailViewProps) {
+export function SpaceDetailView({ space, initialFeed, initialTasks, initialColumns }: SpaceDetailViewProps) {
   const reduce = useReducedMotion();
   const [items, setItems] = useState<SpaceFeedItem[]>(initialFeed);
   const [draft, setDraft] = useState("");
+  const [tasks, setTasks] = useState<TaskListItem[]>(initialTasks);
+  const [columns, setColumns] = useState<TaskColumnItem[]>(initialColumns);
 
   const sorted = useMemo(
     () => [...items].sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime()),
@@ -116,9 +128,14 @@ export function SpaceDetailView({ space, initialFeed }: SpaceDetailViewProps) {
       id: "tarefas",
       label: "Tarefas",
       content: (
-        <p className="text-sm text-foreground/70">
-          As tarefas do espaço aparecem aqui assim que forem criadas a partir de uma gravação.
-        </p>
+        <TasksKanban
+          columns={columns}
+          tasks={tasks}
+          onColumnsChange={setColumns}
+          onTasksChange={setTasks}
+          defaultSpaceId={space.id}
+          priorityVariant={priorityVariant}
+        />
       ),
     },
     {

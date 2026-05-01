@@ -9,6 +9,7 @@ import { sendTeamInviteEmail } from "@/lib/email/send-helpers";
 import { env } from "@/lib/env";
 import crypto from "crypto";
 import { z } from "zod";
+import { revalidatePath } from "next/cache";
 
 export type CreateSpaceState = ActionResult<{ space: SpaceItem }> | null;
 
@@ -33,28 +34,42 @@ export async function createSpaceAction(
   }
 
   try {
-    // Create space
-    const space = await db.space.create({
-      data: {
-        ownerId: session.userId,
-        name: parsed.data.name,
-        description: parsed.data.description,
-        kind: "pessoal",
-        color: "oklch(58% 0.1 240)",
-        icon: "default",
-      },
+    // Create space + owner member + default columns in one transaction
+    const space = await db.$transaction(async (tx) => {
+      const newSpace = await tx.space.create({
+        data: {
+          ownerId: session.userId,
+          name: parsed.data.name,
+          description: parsed.data.description,
+          kind: "pessoal",
+          color: "oklch(58% 0.1 240)",
+          icon: "default",
+        },
+      });
+
+      await tx.spaceMember.create({
+        data: {
+          spaceId: newSpace.id,
+          userId: session.userId,
+          role: "owner",
+          status: "active",
+          joinedAt: new Date(),
+        },
+      });
+
+      // Default kanban columns
+      await tx.taskColumn.createMany({
+        data: [
+          { spaceId: newSpace.id, name: "A fazer", order: 0 },
+          { spaceId: newSpace.id, name: "Em andamento", order: 1 },
+          { spaceId: newSpace.id, name: "Concluído", order: 2 },
+        ],
+      });
+
+      return newSpace;
     });
 
-    // Create SpaceMember for owner
-    await db.spaceMember.create({
-      data: {
-        spaceId: space.id,
-        userId: session.userId,
-        role: "owner",
-        status: "active",
-        joinedAt: new Date(),
-      },
-    });
+    revalidatePath("/spaces");
 
     const spaceItem: SpaceItem = {
       id: space.id,
@@ -69,6 +84,18 @@ export async function createSpaceAction(
     return { ok: true, data: { space: spaceItem } };
   } catch (error) {
     console.error("Error creating space:", error);
+    // Unique constraint violation (P2002): duplicate space name for this owner
+    if (
+      error != null &&
+      typeof error === "object" &&
+      "code" in error &&
+      (error as { code: string }).code === "P2002"
+    ) {
+      return {
+        ok: false,
+        message: "Você já tem um espaço com esse nome.",
+      };
+    }
     return {
       ok: false,
       message: "Não foi possível criar o espaço.",

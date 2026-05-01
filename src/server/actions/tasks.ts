@@ -103,6 +103,8 @@ export async function createTaskAction(
       recordingCapturedAt: createdTask.recording?.capturedAt
         ? createdTask.recording.capturedAt.toISOString().split("T")[0]
         : null,
+      columnId: createdTask.columnId,
+      order: createdTask.order,
     };
 
     return { status: "success", task };

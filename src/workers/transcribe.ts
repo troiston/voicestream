@@ -107,11 +107,19 @@ const worker = new Worker<TranscribeJobData>(QUEUE_NAME, async (job: Job<Transcr
       });
 
       if (summary.tasks.length > 0) {
+        // Assign to first column of the space (order: 0), if any
+        const firstColumn = await tx.taskColumn.findFirst({
+          where: { spaceId: recording.spaceId },
+          orderBy: { order: "asc" },
+          select: { id: true },
+        });
+
         await tx.task.createMany({
           data: summary.tasks.map((task) => ({
             spaceId: recording.spaceId,
             recordingId,
             creatorUserId: recording.userId,
+            columnId: firstColumn?.id ?? null,
             title: task.title.slice(0, 200),
             description: task.description,
             priority: task.priority,

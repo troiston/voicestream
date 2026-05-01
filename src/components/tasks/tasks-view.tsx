@@ -3,7 +3,7 @@
 import { useMemo, useState, useCallback } from "react";
 import { Search, Grid3x3, Table as TableIcon } from "lucide-react";
 
-import type { TaskListItem } from "@/types/domain";
+import type { TaskListItem, TaskColumnItem } from "@/types/domain";
 import type { TaskPriority, TaskStatus } from "@/generated/prisma/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,6 +14,7 @@ import { cn } from "@/lib/utils";
 
 export interface TasksViewProps {
   initialTasks: TaskListItem[];
+  initialColumns: TaskColumnItem[];
   defaultSpaceId: string | null;
   userId: string;
 }
@@ -39,8 +40,9 @@ function statusVariant(s: TaskStatus): "success" | "default" | "warning" {
   return STATUS_CONFIG[s].variant;
 }
 
-export function TasksView({ initialTasks, defaultSpaceId, userId }: TasksViewProps) {
+export function TasksView({ initialTasks, initialColumns, defaultSpaceId, userId }: TasksViewProps) {
   const [tasks, setTasks] = useState<TaskListItem[]>(initialTasks);
+  const [columns, setColumns] = useState<TaskColumnItem[]>(initialColumns);
   const [statusFilter, setStatusFilter] = useState<"all" | TaskStatus>("all");
   const [priorityFilter, setPriorityFilter] = useState<"all" | TaskPriority>("all");
   const [searchQuery, setSearchQuery] = useState("");
@@ -280,11 +282,11 @@ export function TasksView({ initialTasks, defaultSpaceId, userId }: TasksViewPro
         />
       ) : (
         <TasksKanban
-          filteredTasks={filteredTasks}
-          selected={selected}
-          onSelectTask={toggleTaskSelect}
-          statusConfig={STATUS_CONFIG}
-          priorityConfig={PRIORITY_CONFIG}
+          columns={columns}
+          tasks={filteredTasks}
+          onColumnsChange={setColumns}
+          onTasksChange={setTasks}
+          defaultSpaceId={defaultSpaceId}
           priorityVariant={priorityVariant}
         />
       )}

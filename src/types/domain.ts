@@ -1,5 +1,12 @@
 import type { TaskStatus, TaskPriority } from "@/generated/prisma/client";
 
+export type TaskColumnItem = {
+  id: string;
+  spaceId: string;
+  name: string;
+  order: number;
+};
+
 export type SpaceItem = {
   id: string;
   name: string;
@@ -31,4 +38,6 @@ export type TaskListItem = {
   recordingId: string | null;
   recordingTitle: string | null;
   recordingCapturedAt: string | null;
+  columnId: string | null;
+  order: number;
 };

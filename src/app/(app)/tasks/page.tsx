@@ -4,6 +4,7 @@ import { requireSession } from "@/features/auth/guards";
 import { db } from "@/lib/db";
 import { getAccessibleSpaceIds } from "@/features/spaces/access";
 import { TasksView } from "@/components/tasks/tasks-view";
+import type { TaskColumnItem } from "@/types/domain";
 
 export const metadata: Metadata = {
   title: "Tarefas",
@@ -20,26 +21,27 @@ export default async function TasksPage() {
   // Get all spaces the user has access to
   const accessibleSpaceIds = await getAccessibleSpaceIds(session.userId);
 
-  // Fetch tasks from accessible spaces
-  const tasks = await db.task.findMany({
-    where: {
-      spaceId: { in: accessibleSpaceIds },
-    },
-    include: {
-      space: { select: { name: true } },
-      recording: { select: { title: true, capturedAt: true } },
-    },
-    orderBy: { createdAt: "desc" },
-    take: 100,
-  });
+  // Fetch tasks + columns from accessible spaces
+  const [tasks, columns, defaultSpace] = await Promise.all([
+    db.task.findMany({
+      where: { spaceId: { in: accessibleSpaceIds } },
+      include: {
+        space: { select: { name: true } },
+        recording: { select: { title: true, capturedAt: true } },
+      },
+      orderBy: [{ order: "asc" }, { createdAt: "desc" }],
+      take: 100,
+    }),
+    db.taskColumn.findMany({
+      where: { spaceId: { in: accessibleSpaceIds } },
+      orderBy: { order: "asc" },
+    }),
+    db.space.findFirst({
+      where: { ownerId: session.userId },
+      select: { id: true },
+    }),
+  ]);
 
-  // Get the first owned space for defaultSpaceId
-  const defaultSpace = await db.space.findFirst({
-    where: { ownerId: session.userId },
-    select: { id: true },
-  });
-
-  // Transform to TaskListItem format
   const initialTasks = tasks.map((task) => ({
     id: task.id,
     title: task.title,
@@ -51,7 +53,18 @@ export default async function TasksPage() {
     spaceName: task.space.name,
     recordingId: task.recordingId,
     recordingTitle: task.recording?.title ?? null,
-    recordingCapturedAt: task.recording?.capturedAt ? task.recording.capturedAt.toISOString().split("T")[0] : null,
+    recordingCapturedAt: task.recording?.capturedAt
+      ? task.recording.capturedAt.toISOString().split("T")[0]
+      : null,
+    columnId: task.columnId,
+    order: task.order,
+  }));
+
+  const initialColumns: TaskColumnItem[] = columns.map((c) => ({
+    id: c.id,
+    spaceId: c.spaceId,
+    name: c.name,
+    order: c.order,
   }));
 
   return (
@@ -65,6 +78,7 @@ export default async function TasksPage() {
       </header>
       <TasksView
         initialTasks={initialTasks}
+        initialColumns={initialColumns}
         defaultSpaceId={defaultSpace?.id ?? null}
         userId={session.userId}
       />

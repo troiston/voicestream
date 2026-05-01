@@ -205,15 +205,33 @@ model Space {
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
-  owner      User          @relation("SpaceOwner", fields: [ownerId], references: [id], onDelete: Cascade)
-  members    SpaceMember[]
-  invites    SpaceInvite[]
-  recordings Recording[]
-  tasks      Task[]
+  owner       User          @relation("SpaceOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  members     SpaceMember[]
+  invites     SpaceInvite[]
+  recordings  Recording[]
+  tasks       Task[]
+  taskColumns TaskColumn[]
 
+  @@unique([ownerId, name])
   @@index([ownerId])
   @@index([kind])
   @@map("space")
+}
+
+model TaskColumn {
+  id        String   @id @default(cuid())
+  spaceId   String
+  name      String
+  order     Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  space Space  @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+  tasks Task[]
+
+  @@index([spaceId])
+  @@unique([spaceId, name])
+  @@map("task_column")
 }
 
 model SpaceMember {
@@ -342,23 +360,27 @@ model Task {
   recordingId     String?
   creatorUserId   String
   assigneeUserId  String?
+  columnId        String?
   title           String
   description     String       @db.Text
   status          TaskStatus   @default(pendente)
   priority        TaskPriority @default(media)
+  order           Int          @default(0)
   dueAt           DateTime?
   completedAt     DateTime?
   createdAt       DateTime     @default(now())
   updatedAt       DateTime     @updatedAt
 
-  space     Space      @relation(fields: [spaceId], references: [id], onDelete: Cascade)
-  recording Recording? @relation(fields: [recordingId], references: [id], onDelete: SetNull)
-  creator   User       @relation("TaskCreator", fields: [creatorUserId], references: [id], onDelete: Cascade)
-  assignee  User?      @relation("TaskAssignee", fields: [assigneeUserId], references: [id], onDelete: SetNull)
+  space     Space       @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+  recording Recording?  @relation(fields: [recordingId], references: [id], onDelete: SetNull)
+  creator   User        @relation("TaskCreator", fields: [creatorUserId], references: [id], onDelete: Cascade)
+  assignee  User?       @relation("TaskAssignee", fields: [assigneeUserId], references: [id], onDelete: SetNull)
+  column    TaskColumn? @relation(fields: [columnId], references: [id], onDelete: SetNull)
 
   @@index([spaceId, status])
   @@index([assigneeUserId, status])
   @@index([recordingId])
+  @@index([columnId])
   @@map("task")
 }
 
