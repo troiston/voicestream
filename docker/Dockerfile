@@ -17,6 +17,22 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 # Gera Prisma Client antes do build do Next
 RUN npx prisma generate
+
+# Dummy env vars para satisfazer Zod validation em src/lib/env.ts durante `next build`.
+# Em runtime, o entrypoint sobrescreve com valores reais lidos de /run/secrets/*.
+ENV DATABASE_URL=postgresql://build:build@localhost:5432/build \
+    NEXT_PUBLIC_APP_URL=https://voicestream.com.br \
+    BETTER_AUTH_SECRET=build_time_dummy_secret_min_16_chars \
+    BETTER_AUTH_URL=https://voicestream.com.br \
+    S3_ENDPOINT=http://localhost:8333 \
+    S3_ACCESS_KEY=build \
+    S3_SECRET_KEY=build \
+    S3_BUCKET=build \
+    DEEPGRAM_API_KEY=build \
+    REDIS_URL=redis://localhost:6379 \
+    ANTHROPIC_API_KEY=build \
+    ENCRYPTION_KEY=AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
+
 RUN npm run build
 
 # Stage 3 — runtime
