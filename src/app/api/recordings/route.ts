@@ -88,7 +88,14 @@ export async function POST(req: NextRequest) {
   }
 
   // 4. Verificar storage
-  const head = await headObject({ key: storageKey });
+  let head;
+  try {
+    head = await headObject({ key: storageKey });
+  } catch (err) {
+    const detail = err instanceof Error ? err.message : "unknown";
+    logger.error({ err, detail }, "[recordings] headObject failed");
+    return NextResponse.json({ error: "Falha ao consultar storage", detail, stage: "head" }, { status: 500 });
+  }
   if (!head.exists) {
     return NextResponse.json(
       { error: "Upload não detectado no storage" },
@@ -104,8 +111,9 @@ export async function POST(req: NextRequest) {
     await putObjectBytes({ key: storageKey, body: ciphertext, contentType: "application/octet-stream" });
     encryptionMeta = meta as unknown as Prisma.InputJsonValue;
   } catch (err) {
-    logger.error({ err }, "[recordings] encryption failed");
-    return NextResponse.json({ error: "Falha ao cifrar áudio" }, { status: 500 });
+    const detail = err instanceof Error ? err.message : "unknown";
+    logger.error({ err, detail }, "[recordings] encryption failed");
+    return NextResponse.json({ error: "Falha ao cifrar áudio", detail, stage: "encrypt" }, { status: 500 });
   }
 
   // 5. Criar Recording
@@ -142,8 +150,9 @@ export async function POST(req: NextRequest) {
         { status: 409 }
       );
     }
-    logger.error({ err }, "[recordings] Erro ao criar Recording");
-    return NextResponse.json({ error: "Erro interno" }, { status: 500 });
+    const detail = err instanceof Error ? err.message : "unknown";
+    logger.error({ err, detail }, "[recordings] Erro ao criar Recording");
+    return NextResponse.json({ error: "Erro interno", detail, stage: "db" }, { status: 500 });
   }
 
   // 6. Enfileirar job de transcrição
