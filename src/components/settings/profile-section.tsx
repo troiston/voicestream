@@ -8,11 +8,24 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { updateProfile } from "@/features/profile/actions";
 
-export function ProfileSection() {
-  const [displayName, setDisplayName] = useState("Ana Silva");
-  const [phone, setPhone] = useState("+351 912 345 678");
-  const [bio, setBio] = useState("Product Manager @ VoiceStream");
+interface User {
+  name: string;
+  email: string;
+  image: string | null;
+  bio: string | null;
+  phone: string | null;
+}
+
+interface ProfileSectionProps {
+  user: User;
+}
+
+export function ProfileSection({ user }: ProfileSectionProps) {
+  const [displayName, setDisplayName] = useState(user.name);
+  const [phone, setPhone] = useState(user.phone || "");
+  const [bio, setBio] = useState(user.bio || "");
   const [isSaving, setIsSaving] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -32,17 +45,27 @@ export function ProfileSection() {
     .join("");
 
   const handleSave = async () => {
-    setIsSaving(true);
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    setIsSaving(false);
-    toast.success("Perfil atualizado com sucesso!");
+    try {
+      setIsSaving(true);
+      await updateProfile({
+        name: displayName,
+        bio: bio || null,
+        phone: phone || null,
+      });
+      toast.success("Perfil atualizado com sucesso!");
+    } catch (error) {
+      toast.error("Erro ao atualizar perfil. Tente novamente.");
+      console.error(error);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
     <Card className="border border-border/60 bg-surface-1 shadow-none">
       <CardHeader>
         <h2 className="text-base font-semibold tracking-tight text-foreground">Perfil</h2>
-        <CardDescription>Nome visível, email, telefone e biografia (mock — sem persistência).</CardDescription>
+        <CardDescription>Nome visível, email, telefone e biografia.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         {/* Avatar Dropzone */}
@@ -95,7 +118,7 @@ export function ProfileSection() {
             <input
               id="settings-email"
               type="email"
-              value="ana.silva@exemplo.com"
+              value={user.email}
               readOnly
               className={cn(
                 "h-10 w-full min-w-0 rounded-[var(--radius-md)] border border-input bg-muted/50 px-3 py-2 text-sm transition-colors outline-none",

@@ -288,6 +288,8 @@ export function TasksView({ initialTasks, initialColumns, defaultSpaceId, userId
           onTasksChange={setTasks}
           defaultSpaceId={defaultSpaceId}
           priorityVariant={priorityVariant}
+          mode="global"
+          currentUserId={userId}
         />
       )}
     </div>

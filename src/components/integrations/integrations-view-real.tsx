@@ -1,6 +1,7 @@
 "use client";
 
 import { motion, useReducedMotion } from "framer-motion";
+import { Calendar, CheckCircle2 } from "lucide-react";
 import Link from "next/link";
 
 import { Badge } from "@/components/ui/badge";
@@ -72,16 +73,6 @@ const PROVIDERS: ProviderMeta[] = [
   },
 ];
 
-const CATEGORY_ORDER = ["Produtividade", "Comunicação", "Calendário", "CRM", "Automação"];
-
-function groupByCategory(providers: ProviderMeta[]) {
-  return providers.reduce<Record<string, ProviderMeta[]>>((acc, p) => {
-    if (!acc[p.category]) acc[p.category] = [];
-    acc[p.category].push(p);
-    return acc;
-  }, {});
-}
-
 // ---------------------------------------------------------------------------
 // Props
 // ---------------------------------------------------------------------------
@@ -97,129 +88,183 @@ export interface IntegrationsViewRealProps {
 
 export function IntegrationsViewReal({ statusByProvider }: IntegrationsViewRealProps) {
   const reduce = useReducedMotion();
-  const grouped = groupByCategory(PROVIDERS);
 
-  const sortedCategories = Object.keys(grouped).sort((a, b) => {
-    const ai = CATEGORY_ORDER.indexOf(a);
-    const bi = CATEGORY_ORDER.indexOf(b);
-    return (ai >= 0 ? ai : 999) - (bi >= 0 ? bi : 999);
-  });
+  // Separate Google Calendar from the rest
+  const googleCalendar = PROVIDERS.find((p) => p.key === "google_calendar")!;
+  const comingSoonProviders = PROVIDERS.filter((p) => p.comingSoon);
+
+  const googleStatus = statusByProvider[googleCalendar.key] ?? "disconnected";
+  const isGoogleConnected = googleStatus === "connected";
+
+  // Benefits for Google Calendar hero
+  const benefits = [
+    "Crie tarefas a partir de eventos automaticamente",
+    "Veja transcrições anexadas ao calendário",
+    "Permissão somente-leitura, escopo mínimo",
+  ];
+
+  // How it works steps
+  const steps = [
+    { icon: "🔐", title: "Conectar conta Google", desc: "Autorize acesso seguro" },
+    { icon: "📅", title: "Autorizar leitura de eventos", desc: "Acesso aos seus eventos" },
+    { icon: "📝", title: "Transcrições aparecem nos eventos", desc: "Tudo sincronizado" },
+  ];
 
   return (
-    <>
-      {sortedCategories.map((category, catIndex) => {
-        const items = grouped[category];
-        return (
-          <section key={category} className="space-y-4">
-            <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-              {category}
-            </h3>
-            <ul className="grid list-none gap-4 p-0 sm:grid-cols-2 lg:grid-cols-3">
-              {items.map((item, i) => {
-                const status = statusByProvider[item.key] ?? "disconnected";
-                const isConnected = status === "connected";
-                const itemIndex = catIndex * 10 + i;
+    <div className="space-y-12">
+      {/* ===== Google Calendar Hero ===== */}
+      <motion.section
+        initial={reduce ? false : { opacity: 0, y: 20 }}
+        whileInView={reduce ? undefined : { opacity: 1, y: 0 }}
+        viewport={{ once: true, margin: "-48px" }}
+        transition={{ type: "spring", stiffness: 200, damping: 28 }}
+        className="rounded-[var(--radius-lg)] border border-border/60 bg-surface-2 p-8 md:p-10"
+      >
+        {/* Header with icon and status */}
+        <div className="mb-8 flex items-start justify-between gap-4">
+          <div className="flex items-start gap-4">
+            <div className="rounded-lg bg-brand/15 p-3">
+              <Calendar className="h-8 w-8 text-brand" />
+            </div>
+            <div>
+              <h2 className="text-2xl font-bold text-foreground">Google Calendar</h2>
+              <p className="mt-1 text-base text-muted-foreground">
+                Sincronize transcrições e tarefas com seus eventos automaticamente.
+              </p>
+            </div>
+          </div>
 
-                return (
-                  <motion.li
-                    key={item.key}
-                    className="list-none"
-                    initial={reduce ? false : { opacity: 0, y: 14 }}
-                    whileInView={reduce ? undefined : { opacity: 1, y: 0 }}
-                    viewport={{ once: true, margin: "-48px" }}
-                    transition={{
-                      type: "spring",
-                      stiffness: 200,
-                      damping: 28,
-                      delay: reduce ? 0 : Math.min(itemIndex * 0.06, 0.42),
+          {/* Status badge */}
+          <Badge
+            variant={
+              isGoogleConnected
+                ? "success"
+                : googleStatus === "error"
+                  ? "destructive"
+                  : "muted"
+            }
+            className="shrink-0"
+          >
+            {isGoogleConnected ? "Conectado" : googleStatus === "error" ? "Erro" : "Disponível"}
+          </Badge>
+        </div>
+
+        {/* Benefits list */}
+        <div className="mb-8 space-y-3">
+          {benefits.map((benefit, idx) => (
+            <div key={idx} className="flex items-start gap-3">
+              <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-brand" />
+              <span className="text-sm text-foreground">{benefit}</span>
+            </div>
+          ))}
+        </div>
+
+        {/* CTA */}
+        <Link
+          href="/api/integrations/google/connect"
+          className={cn(
+            "inline-flex min-h-11 items-center justify-center rounded-[var(--radius-md)] px-6 py-2 text-sm font-medium transition-colors",
+            isGoogleConnected
+              ? "btn-gradient bg-brand text-brand-foreground hover:bg-brand/90"
+              : "border border-border bg-surface-1 text-foreground hover:bg-surface-2",
+          )}
+        >
+          {isGoogleConnected ? "Gerenciar conexão" : "Conectar agora"}
+        </Link>
+      </motion.section>
+
+      {/* ===== How It Works ===== */}
+      <motion.section
+        initial={reduce ? false : { opacity: 0, y: 20 }}
+        whileInView={reduce ? undefined : { opacity: 1, y: 0 }}
+        viewport={{ once: true, margin: "-48px" }}
+        transition={{ type: "spring", stiffness: 200, damping: 28, delay: 0.06 }}
+        className="space-y-6"
+      >
+        <h3 className="text-lg font-semibold text-foreground">Como funciona</h3>
+        <ul className="grid list-none gap-4 p-0 md:grid-cols-3">
+          {steps.map((step, idx) => (
+            <motion.li
+              key={idx}
+              className="list-none"
+              initial={reduce ? false : { opacity: 0, y: 14 }}
+              whileInView={reduce ? undefined : { opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-48px" }}
+              transition={{
+                type: "spring",
+                stiffness: 200,
+                damping: 28,
+                delay: reduce ? 0 : 0.12 + idx * 0.06,
+              }}
+            >
+              <article className="flex flex-col rounded-[var(--radius-lg)] border border-border/60 bg-surface-1 p-4 text-center">
+                <div className="mb-3 text-4xl">{step.icon}</div>
+                <h4 className="font-semibold text-foreground">{step.title}</h4>
+                <p className="mt-2 text-xs text-muted-foreground">{step.desc}</p>
+              </article>
+            </motion.li>
+          ))}
+        </ul>
+      </motion.section>
+
+      {/* ===== Coming Soon ===== */}
+      <motion.section
+        initial={reduce ? false : { opacity: 0, y: 20 }}
+        whileInView={reduce ? undefined : { opacity: 1, y: 0 }}
+        viewport={{ once: true, margin: "-48px" }}
+        transition={{ type: "spring", stiffness: 200, damping: 28, delay: 0.12 }}
+        className="space-y-6"
+      >
+        <h3 className="text-lg font-semibold text-foreground">Em breve</h3>
+        <ul className="grid list-none gap-4 p-0 sm:grid-cols-2 lg:grid-cols-4">
+          {comingSoonProviders.map((item, i) => (
+            <motion.li
+              key={item.key}
+              className="list-none"
+              initial={reduce ? false : { opacity: 0, y: 14 }}
+              whileInView={reduce ? undefined : { opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-48px" }}
+              transition={{
+                type: "spring",
+                stiffness: 200,
+                damping: 28,
+                delay: reduce ? 0 : 0.18 + i * 0.04,
+              }}
+            >
+              <article className="flex h-full flex-col rounded-[var(--radius-lg)] border border-border/60 bg-surface-1 p-4 text-left transition-all motion-reduce:transform-none">
+                <div className="flex items-start justify-between gap-2">
+                  <div
+                    className="h-10 w-10 rounded-lg flex items-center justify-center font-bold text-lg shrink-0"
+                    style={{
+                      background: "var(--brand)/15",
+                      color: "var(--brand)",
                     }}
                   >
-                    <article
-                      className={cn(
-                        "flex h-full flex-col rounded-[var(--radius-lg)] p-4 text-left transition-all motion-reduce:transform-none",
-                        isConnected
-                          ? "gradient-border"
-                          : "border border-border/60 bg-surface-1 opacity-70 hover:opacity-90",
-                      )}
-                    >
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="flex items-start gap-3">
-                          <div
-                            className="h-10 w-10 rounded-lg flex items-center justify-center font-bold text-lg shrink-0"
-                            style={{
-                              background: "var(--brand)/15",
-                              color: "var(--brand)",
-                            }}
-                          >
-                            {item.name.charAt(0)}
-                          </div>
-                          <div>
-                            <h3 className="text-base font-semibold leading-snug text-foreground">
-                              {item.name}
-                            </h3>
-                            <Badge variant="outline" className="mt-1 text-[10px]">
-                              {item.category}
-                            </Badge>
-                          </div>
-                        </div>
+                    {item.name.charAt(0)}
+                  </div>
+                  <Badge variant="outline" className="shrink-0 text-[10px]">
+                    Em breve
+                  </Badge>
+                </div>
 
-                        {item.comingSoon ? (
-                          <Badge variant="outline" className="shrink-0">
-                            Em breve
-                          </Badge>
-                        ) : (
-                          <Badge
-                            variant={
-                              isConnected
-                                ? "success"
-                                : status === "error"
-                                  ? "destructive"
-                                  : "muted"
-                            }
-                            className="shrink-0"
-                          >
-                            {isConnected ? "Conectado" : status === "error" ? "Erro" : "Disponível"}
-                          </Badge>
-                        )}
-                      </div>
+                <h4 className="mt-3 font-semibold text-foreground">{item.name}</h4>
+                <p className="mt-2 flex-1 text-xs text-muted-foreground">{item.description}</p>
 
-                      <p className="mt-2 flex-1 text-sm text-muted-foreground">
-                        {item.description}
-                      </p>
-
-                      {item.comingSoon ? (
-                        <Button
-                          type="button"
-                          variant="secondary"
-                          size="sm"
-                          className="mt-4 min-h-11 w-full"
-                          disabled
-                          aria-disabled="true"
-                        >
-                          Em breve
-                        </Button>
-                      ) : (
-                        // TODO (fase 10.H): substituir por redirect OAuth real em /api/integrations/google/connect
-                        <Link
-                          href="/api/integrations/google/connect"
-                          className={cn(
-                            "mt-4 inline-flex min-h-11 w-full items-center justify-center rounded-[var(--radius-md)] px-4 py-2 text-sm font-medium transition-colors",
-                            isConnected
-                              ? "btn-gradient bg-brand text-brand-foreground hover:bg-brand/90"
-                              : "border border-border bg-surface-1 text-foreground hover:bg-surface-2",
-                          )}
-                        >
-                          {isConnected ? "Gerenciar conexão" : "Conectar"}
-                        </Link>
-                      )}
-                    </article>
-                  </motion.li>
-                );
-              })}
-            </ul>
-          </section>
-        );
-      })}
-    </>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  className="mt-4 min-h-10 w-full text-xs"
+                  disabled
+                  aria-disabled="true"
+                >
+                  Avise-me
+                </Button>
+              </article>
+            </motion.li>
+          ))}
+        </ul>
+      </motion.section>
+    </div>
   );
 }

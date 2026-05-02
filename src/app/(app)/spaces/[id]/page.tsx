@@ -120,6 +120,7 @@ export default async function SpaceDetailPage({ params }: PageProps) {
       initialFeed={feed}
       initialTasks={initialTasks}
       initialColumns={initialColumns}
+      userId={session.userId}
     />
   );
 }

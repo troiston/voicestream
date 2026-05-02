@@ -14,16 +14,22 @@ const EVENTS = [
   "Alerta de cobrança",
 ] as const;
 
-const CHANNELS = ["Email", "Push", "Slack"] as const;
+interface NotificationsSectionProps {
+  connectedProviders?: string[];
+}
 
-export function NotificationsSection() {
-  const [prefs, setPrefs] = useState<NotificationPrefs>({
-    "Transcrição concluída": { Email: true, Push: true, Slack: false },
-    "Nova tarefa": { Email: false, Push: true, Slack: true },
-    "Menção": { Email: true, Push: true, Slack: true },
-    "Resumo semanal": { Email: true, Push: false, Slack: false },
-    "Alerta de cobrança": { Email: true, Push: false, Slack: false },
-  });
+export function NotificationsSection({ connectedProviders = [] }: NotificationsSectionProps) {
+  const channels = ["Email", "Push", ...(connectedProviders.includes("slack") ? ["Slack"] : [])] as const;
+  const CHANNELS = channels;
+  const initialPrefs: NotificationPrefs = {
+    "Transcrição concluída": { Email: true, Push: true, ...(connectedProviders.includes("slack") ? { Slack: false } : {}) },
+    "Nova tarefa": { Email: false, Push: true, ...(connectedProviders.includes("slack") ? { Slack: true } : {}) },
+    "Menção": { Email: true, Push: true, ...(connectedProviders.includes("slack") ? { Slack: true } : {}) },
+    "Resumo semanal": { Email: true, Push: false, ...(connectedProviders.includes("slack") ? { Slack: false } : {}) },
+    "Alerta de cobrança": { Email: true, Push: false, ...(connectedProviders.includes("slack") ? { Slack: false } : {}) },
+  };
+
+  const [prefs, setPrefs] = useState<NotificationPrefs>(initialPrefs);
 
   const togglePref = (event: string, channel: string) => {
     setPrefs((prev) => ({

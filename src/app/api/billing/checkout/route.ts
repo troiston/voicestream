@@ -75,7 +75,12 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ url: checkoutSession.url, sessionId: checkoutSession.id });
   } catch (err) {
-    logger.error({ err }, "[billing/checkout] Stripe error");
-    return NextResponse.json({ error: "Erro ao criar sessão de pagamento" }, { status: 500 });
+    const message = err instanceof Error ? err.message : "unknown";
+    const code = (err as { code?: string } | null)?.code ?? null;
+    logger.error({ err, message, code }, "[billing/checkout] Stripe error");
+    return NextResponse.json(
+      { error: "Erro ao criar sessão de pagamento", detail: message, code },
+      { status: 500 },
+    );
   }
 }

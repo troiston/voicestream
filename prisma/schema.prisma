@@ -17,6 +17,8 @@ model User {
   email            String      @unique
   emailVerified    Boolean     @default(false)
   image            String?
+  bio              String?
+  phone            String?
   isDemo           Boolean     @default(false)
   twoFactorEnabled Boolean?    @default(false)
   createdAt        DateTime    @default(now())
@@ -40,6 +42,7 @@ model User {
   auditLogs        AuditLog[]
   spaceInvitesSent SpaceInvite[]
   integrations     Integration[]
+  comments         Comment[]      @relation("CommentAuthor")
 
   @@index([isDemo])
   @@map("user")
@@ -211,6 +214,7 @@ model Space {
   recordings  Recording[]
   tasks       Task[]
   taskColumns TaskColumn[]
+  labels      Label[]
 
   @@unique([ownerId, name])
   @@index([ownerId])
@@ -368,14 +372,19 @@ model Task {
   order           Int          @default(0)
   dueAt           DateTime?
   completedAt     DateTime?
+  archivedAt      DateTime?
   createdAt       DateTime     @default(now())
   updatedAt       DateTime     @updatedAt
 
-  space     Space       @relation(fields: [spaceId], references: [id], onDelete: Cascade)
-  recording Recording?  @relation(fields: [recordingId], references: [id], onDelete: SetNull)
-  creator   User        @relation("TaskCreator", fields: [creatorUserId], references: [id], onDelete: Cascade)
-  assignee  User?       @relation("TaskAssignee", fields: [assigneeUserId], references: [id], onDelete: SetNull)
-  column    TaskColumn? @relation(fields: [columnId], references: [id], onDelete: SetNull)
+  space       Space       @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+  recording   Recording?  @relation(fields: [recordingId], references: [id], onDelete: SetNull)
+  creator     User        @relation("TaskCreator", fields: [creatorUserId], references: [id], onDelete: Cascade)
+  assignee    User?       @relation("TaskAssignee", fields: [assigneeUserId], references: [id], onDelete: SetNull)
+  column      TaskColumn? @relation(fields: [columnId], references: [id], onDelete: SetNull)
+  labels      TaskLabel[]
+  checklists  Checklist[]
+  comments    Comment[]
+  attachments Attachment[]
 
   @@index([spaceId, status])
   @@index([assigneeUserId, status])
@@ -420,4 +429,89 @@ model AuditLog {
   @@index([userId, createdAt(sort: Desc)])
   @@index([action, createdAt(sort: Desc)])
   @@map("audit_log")
+}
+
+// ============================================================
+// Task Trello-like features
+// ============================================================
+
+model Label {
+  id      String      @id @default(cuid())
+  spaceId String
+  name    String
+  color   String
+
+  space  Space       @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+  tasks  TaskLabel[]
+
+  @@unique([spaceId, name])
+  @@index([spaceId])
+  @@map("label")
+}
+
+model TaskLabel {
+  taskId  String
+  labelId String
+
+  task  Task  @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  label Label @relation(fields: [labelId], references: [id], onDelete: Cascade)
+
+  @@id([taskId, labelId])
+  @@map("task_label")
+}
+
+model Checklist {
+  id     String @id @default(cuid())
+  taskId String
+  title  String
+  order  Int    @default(0)
+
+  task  Task            @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  items ChecklistItem[]
+
+  @@index([taskId])
+  @@map("checklist")
+}
+
+model ChecklistItem {
+  id          String  @id @default(cuid())
+  checklistId String
+  text        String
+  done        Boolean @default(false)
+  order       Int     @default(0)
+
+  checklist Checklist @relation(fields: [checklistId], references: [id], onDelete: Cascade)
+
+  @@index([checklistId])
+  @@map("checklist_item")
+}
+
+model Comment {
+  id        String   @id @default(cuid())
+  taskId    String
+  authorId  String
+  body      String   @db.Text
+  createdAt DateTime @default(now())
+
+  task   Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  author User @relation("CommentAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@index([taskId])
+  @@map("comment")
+}
+
+model Attachment {
+  id           String   @id @default(cuid())
+  taskId       String
+  s3Key        String
+  filename     String
+  size         Int
+  mimeType     String
+  uploadedAt   DateTime @default(now())
+  uploadedById String
+
+  task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  @@index([taskId])
+  @@map("attachment")
 }

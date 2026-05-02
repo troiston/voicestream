@@ -11,10 +11,22 @@ const envSchema = z.object({
   STRIPE_PRICE_ENTERPRISE: z.preprocess((v) => (v === "" ? undefined : v), z.string().startsWith("price_").optional()),
   BETTER_AUTH_SECRET: z.string().min(16),
   BETTER_AUTH_URL: z.string().url(),
-  GOOGLE_CLIENT_ID: z.string().optional(),
-  GOOGLE_CLIENT_SECRET: z.string().optional(),
-  GOOGLE_CALENDAR_CLIENT_ID: z.string().optional(),
-  GOOGLE_CALENDAR_CLIENT_SECRET: z.string().optional(),
+  GOOGLE_CLIENT_ID: z.preprocess(
+    (v) => (typeof v === "string" && v === "" ? undefined : v),
+    z.string().optional(),
+  ),
+  GOOGLE_CLIENT_SECRET: z.preprocess(
+    (v) => (typeof v === "string" && v === "" ? undefined : v),
+    z.string().optional(),
+  ),
+  GOOGLE_CALENDAR_CLIENT_ID: z.preprocess(
+    (v) => (typeof v === "string" && v === "" ? undefined : v),
+    z.string().optional(),
+  ),
+  GOOGLE_CALENDAR_CLIENT_SECRET: z.preprocess(
+    (v) => (typeof v === "string" && v === "" ? undefined : v),
+    z.string().optional(),
+  ),
   RESEND_API_KEY: z.string().optional(),
   RESEND_FROM: z.string().optional(),
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),

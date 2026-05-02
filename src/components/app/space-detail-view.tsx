@@ -17,6 +17,7 @@ export interface SpaceDetailViewProps {
   initialFeed: SpaceFeedItem[];
   initialTasks: TaskListItem[];
   initialColumns: TaskColumnItem[];
+  userId?: string;
 }
 
 function priorityVariant(p: TaskPriority): "danger" | "warning" | "info" {
@@ -31,7 +32,7 @@ const kindLabel: Record<SpaceFeedItem["kind"], string> = {
   task: "Tarefa",
 };
 
-export function SpaceDetailView({ space, initialFeed, initialTasks, initialColumns }: SpaceDetailViewProps) {
+export function SpaceDetailView({ space, initialFeed, initialTasks, initialColumns, userId }: SpaceDetailViewProps) {
   const reduce = useReducedMotion();
   const [items, setItems] = useState<SpaceFeedItem[]>(initialFeed);
   const [draft, setDraft] = useState("");
@@ -135,6 +136,8 @@ export function SpaceDetailView({ space, initialFeed, initialTasks, initialColum
           onTasksChange={setTasks}
           defaultSpaceId={space.id}
           priorityVariant={priorityVariant}
+          mode="space"
+          currentUserId={userId}
         />
       ),
     },

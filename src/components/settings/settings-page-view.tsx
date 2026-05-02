@@ -22,9 +22,17 @@ const SECTIONS = [
 
 interface SettingsPageViewProps {
   twoFactorEnabled?: boolean;
+  connectedProviders?: string[];
+  user?: {
+    name: string;
+    email: string;
+    image: string | null;
+    bio: string | null;
+    phone: string | null;
+  } | null;
 }
 
-export function SettingsPageView({ twoFactorEnabled = false }: SettingsPageViewProps) {
+export function SettingsPageView({ twoFactorEnabled = false, connectedProviders = [], user }: SettingsPageViewProps) {
   const [activeSection, setActiveSection] = useState<string>("perfil");
 
   // Scroll-spy: IntersectionObserver
@@ -129,7 +137,7 @@ export function SettingsPageView({ twoFactorEnabled = false }: SettingsPageViewP
         {/* Seções */}
         <div className="space-y-6">
           <section id="perfil">
-            <ProfileSection />
+            {user && <ProfileSection user={user} />}
           </section>
 
           <section id="preferencias">
@@ -141,7 +149,7 @@ export function SettingsPageView({ twoFactorEnabled = false }: SettingsPageViewP
           </section>
 
           <section id="notificacoes">
-            <NotificationsSection />
+            <NotificationsSection connectedProviders={connectedProviders} />
           </section>
 
           <section id="dispositivos">

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useTransition } from "react";
 import {
   DndContext,
   DragOverlay,
@@ -27,7 +27,6 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import type { TaskListItem, TaskColumnItem } from "@/types/domain";
 import type { TaskPriority } from "@/generated/prisma/client";
-import { cn } from "@/lib/utils";
 import {
   createColumn,
   renameColumn,
@@ -35,6 +34,12 @@ import {
   reorderColumns,
   moveTask,
 } from "@/features/tasks/columns-actions";
+import { getTaskDetail } from "@/features/tasks/actions";
+import { TaskCard } from "@/components/tasks/task-card";
+import { AddCardButton } from "@/components/tasks/add-card-button";
+import { FiltersBar, type KanbanFilters, type LabelFilterItem, type SpaceFilterItem } from "@/components/tasks/filters-bar";
+import { TaskDetailDialog, type TaskDetailData } from "@/components/tasks/task-detail-dialog";
+import type { LabelItem } from "@/components/tasks/labels-popover";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -47,57 +52,10 @@ interface TasksKanbanProps {
   onTasksChange: (tasks: TaskListItem[]) => void;
   defaultSpaceId: string | null;
   priorityVariant: (p: TaskPriority) => "danger" | "warning" | "info";
-}
-
-// ---------------------------------------------------------------------------
-// Sortable Task Card
-// ---------------------------------------------------------------------------
-
-function TaskCard({
-  task,
-  priorityVariant,
-  isDragging = false,
-}: {
-  task: TaskListItem;
-  priorityVariant: (p: TaskPriority) => "danger" | "warning" | "info";
-  isDragging?: boolean;
-}) {
-  const { attributes, listeners, setNodeRef, transform, transition } = useSortable({
-    id: `task:${task.id}`,
-    data: { type: "task", taskId: task.id, columnId: task.columnId },
-  });
-
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-    opacity: isDragging ? 0.4 : 1,
-  };
-
-  return (
-    <div
-      ref={setNodeRef}
-      style={style}
-      {...attributes}
-      {...listeners}
-      className={cn(
-        "group relative rounded-[var(--radius-md)] border border-border/40 bg-gradient-to-br from-surface-2 to-surface-1 p-3",
-        "cursor-grab active:cursor-grabbing select-none",
-        isDragging && "opacity-40",
-      )}
-    >
-      <h4 className="text-sm font-medium text-foreground line-clamp-2 break-words mb-2">
-        {task.title}
-      </h4>
-      <div className="flex flex-wrap gap-1">
-        <Badge variant={priorityVariant(task.priority)} className="text-xs">
-          {task.priority === "alta" ? "Alta" : task.priority === "media" ? "Média" : "Baixa"}
-        </Badge>
-      </div>
-      {task.dueAt && (
-        <p className="mt-1 text-xs text-muted-foreground">{task.dueAt}</p>
-      )}
-    </div>
-  );
+  mode?: "global" | "space";
+  spaceLabels?: LabelFilterItem[];
+  spaceFilterList?: SpaceFilterItem[];
+  currentUserId?: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -109,15 +67,21 @@ function KanbanColumn({
   tasks,
   priorityVariant,
   activeTaskId,
+  mode,
   onRename,
   onDelete,
+  onTaskClick,
+  onTaskCreated,
 }: {
   column: TaskColumnItem;
   tasks: TaskListItem[];
   priorityVariant: (p: TaskPriority) => "danger" | "warning" | "info";
   activeTaskId: string | null;
+  mode: "global" | "space";
   onRename: (columnId: string, newName: string) => void;
   onDelete: (columnId: string) => void;
+  onTaskClick: (taskId: string) => void;
+  onTaskCreated: (task: TaskListItem) => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: `col:${column.id}`,
@@ -261,8 +225,10 @@ function KanbanColumn({
             <TaskCard
               key={task.id}
               task={task}
+              mode={mode}
               priorityVariant={priorityVariant}
               isDragging={activeTaskId === task.id}
+              onClick={onTaskClick}
             />
           ))}
         </SortableContext>
@@ -272,8 +238,42 @@ function KanbanColumn({
           </div>
         )}
       </div>
+
+      {/* Add card button */}
+      <div className="px-3 pb-3">
+        <AddCardButton columnId={column.id} onTaskCreated={onTaskCreated} />
+      </div>
     </div>
   );
+}
+
+// ---------------------------------------------------------------------------
+// Filter helpers
+// ---------------------------------------------------------------------------
+
+function applyFilters(tasks: TaskListItem[], filters: KanbanFilters): TaskListItem[] {
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const tomorrow = new Date(today.getTime() + 86400000);
+
+  return tasks.filter((t) => {
+    if (filters.search) {
+      const q = filters.search.toLowerCase();
+      if (!t.title.toLowerCase().includes(q)) return false;
+    }
+    if (filters.spaceId && t.spaceId !== filters.spaceId) return false;
+    if (filters.overdue) {
+      if (!t.dueAt) return false;
+      const due = new Date(t.dueAt);
+      if (due >= today) return false;
+    }
+    if (filters.dueToday) {
+      if (!t.dueAt) return false;
+      const due = new Date(t.dueAt);
+      if (due < today || due >= tomorrow) return false;
+    }
+    return true;
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -287,9 +287,26 @@ export function TasksKanban({
   onTasksChange,
   defaultSpaceId,
   priorityVariant,
+  mode = "space",
+  spaceLabels = [],
+  spaceFilterList = [],
+  currentUserId,
 }: TasksKanbanProps) {
   const [activeColId, setActiveColId] = useState<string | null>(null);
   const [activeTaskId, setActiveTaskId] = useState<string | null>(null);
+
+  // Filters
+  const [filters, setFilters] = useState<KanbanFilters>({
+    search: "",
+    labelIds: [],
+    overdue: false,
+    dueToday: false,
+  });
+
+  // Task detail dialog
+  const [selectedTask, setSelectedTask] = useState<TaskDetailData | null>(null);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [, startDetailTransition] = useTransition();
 
   // New column input
   const [addingColumn, setAddingColumn] = useState(false);
@@ -304,15 +321,39 @@ export function TasksKanban({
   const sortedColumns = [...columns].sort((a, b) => a.order - b.order);
   const columnIds = sortedColumns.map((c) => `col:${c.id}`);
 
+  const filteredTasks = applyFilters(tasks, filters);
+
   const tasksInColumn = useCallback(
     (colId: string) =>
-      tasks
+      filteredTasks
         .filter((t) => t.columnId === colId)
         .sort((a, b) => a.order - b.order),
-    [tasks],
+    [filteredTasks],
   );
 
-  const unassignedTasks = tasks.filter((t) => t.columnId === null);
+  const unassignedTasks = filteredTasks.filter((t) => t.columnId === null);
+
+  // ---- Task detail ----
+
+  const handleTaskClick = useCallback(
+    (taskId: string) => {
+      startDetailTransition(async () => {
+        const result = await getTaskDetail(taskId);
+        if (result.ok) {
+          setSelectedTask(result.task as unknown as TaskDetailData);
+          setDialogOpen(true);
+        }
+      });
+    },
+    [],
+  );
+
+  const handleTaskCreated = useCallback(
+    (task: TaskListItem) => {
+      onTasksChange([...tasks, task]);
+    },
+    [tasks, onTasksChange],
+  );
 
   // ---- Drag Handlers ----
 
@@ -437,7 +478,6 @@ export function TasksKanban({
   const handleDeleteColumn = useCallback(
     async (columnId: string) => {
       onColumnsChange(columns.filter((c) => c.id !== columnId));
-      // Move tasks to null (server will handle assignment to first remaining)
       onTasksChange(tasks.map((t) => (t.columnId === columnId ? { ...t, columnId: null } : t)));
       await deleteColumn(columnId);
     },
@@ -468,107 +508,138 @@ export function TasksKanban({
   const activeTask = activeTaskId ? tasks.find((t) => t.id === activeTaskId) : null;
 
   return (
-    <div className="w-full overflow-x-auto pb-4">
-      <DndContext
-        sensors={sensors}
-        collisionDetection={closestCorners}
-        onDragStart={onDragStart}
-        onDragOver={onDragOver}
-        onDragEnd={onDragEnd}
-      >
-        <div className="flex gap-4 min-w-max">
-          <SortableContext items={columnIds} strategy={horizontalListSortingStrategy}>
-            {sortedColumns.map((col) => (
-              <KanbanColumn
-                key={col.id}
-                column={col}
-                tasks={tasksInColumn(col.id)}
-                priorityVariant={priorityVariant}
-                activeTaskId={activeTaskId}
-                onRename={(id, name) => void handleRenameColumn(id, name)}
-                onDelete={(id) => void handleDeleteColumn(id)}
-              />
-            ))}
-          </SortableContext>
+    <div className="w-full space-y-3">
+      {/* Filters bar */}
+      <FiltersBar
+        filters={filters}
+        onChange={setFilters}
+        labels={spaceLabels}
+        spaces={spaceFilterList}
+        mode={mode}
+      />
 
-          {/* Unassigned column (if tasks exist without a column) */}
-          {unassignedTasks.length > 0 && (
-            <div className="flex flex-col w-72 shrink-0 rounded-[var(--radius-lg)] border border-dashed border-border/60 bg-surface-1 min-h-96">
-              <div className="flex items-center gap-2 px-4 py-3 border-b border-border/40">
-                <h3 className="flex-1 text-sm font-semibold text-muted-foreground">Sem coluna</h3>
-                <Badge variant="muted">{unassignedTasks.length}</Badge>
-              </div>
-              <div className="flex-1 p-3 space-y-2">
-                {unassignedTasks.map((task) => (
-                  <TaskCard key={task.id} task={task} priorityVariant={priorityVariant} />
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Add column button */}
-          <div className="flex flex-col w-72 shrink-0">
-            {addingColumn ? (
-              <div className="rounded-[var(--radius-lg)] border border-border/60 bg-surface-1 p-3">
-                <input
-                  autoFocus
-                  value={newColName}
-                  onChange={(e) => setNewColName(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") void handleAddColumn();
-                    if (e.key === "Escape") { setAddingColumn(false); setNewColName(""); }
-                  }}
-                  placeholder="Nome da coluna"
-                  className="w-full text-sm bg-transparent border-b border-primary outline-none py-1 mb-3"
+      <div className="overflow-x-auto pb-4">
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCorners}
+          onDragStart={onDragStart}
+          onDragOver={onDragOver}
+          onDragEnd={onDragEnd}
+        >
+          <div className="flex gap-4 min-w-max">
+            <SortableContext items={columnIds} strategy={horizontalListSortingStrategy}>
+              {sortedColumns.map((col) => (
+                <KanbanColumn
+                  key={col.id}
+                  column={col}
+                  tasks={tasksInColumn(col.id)}
+                  priorityVariant={priorityVariant}
+                  activeTaskId={activeTaskId}
+                  mode={mode}
+                  onRename={(id, name) => void handleRenameColumn(id, name)}
+                  onDelete={(id) => void handleDeleteColumn(id)}
+                  onTaskClick={handleTaskClick}
+                  onTaskCreated={handleTaskCreated}
                 />
-                <div className="flex gap-2">
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="primary"
-                    onClick={() => void handleAddColumn()}
-                    isLoading={addPending}
-                    loadingLabel="A criar..."
-                  >
-                    Adicionar
-                  </Button>
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="secondary"
-                    onClick={() => { setAddingColumn(false); setNewColName(""); }}
-                  >
-                    Cancelar
-                  </Button>
+              ))}
+            </SortableContext>
+
+            {/* Unassigned column (if tasks exist without a column) */}
+            {unassignedTasks.length > 0 && (
+              <div className="flex flex-col w-72 shrink-0 rounded-[var(--radius-lg)] border border-dashed border-border/60 bg-surface-1 min-h-96">
+                <div className="flex items-center gap-2 px-4 py-3 border-b border-border/40">
+                  <h3 className="flex-1 text-sm font-semibold text-muted-foreground">Sem coluna</h3>
+                  <Badge variant="muted">{unassignedTasks.length}</Badge>
+                </div>
+                <div className="flex-1 p-3 space-y-2">
+                  {unassignedTasks.map((task) => (
+                    <TaskCard
+                      key={task.id}
+                      task={task}
+                      mode={mode}
+                      priorityVariant={priorityVariant}
+                      onClick={handleTaskClick}
+                    />
+                  ))}
                 </div>
               </div>
-            ) : (
-              <button
-                type="button"
-                onClick={() => setAddingColumn(true)}
-                className="flex items-center gap-2 rounded-[var(--radius-lg)] border border-dashed border-border/60 px-4 py-3 text-sm text-muted-foreground hover:text-foreground hover:border-border transition-colors"
-              >
-                <Plus className="size-4" />
-                Adicionar coluna
-              </button>
             )}
-          </div>
-        </div>
 
-        {/* Drag Overlay */}
-        <DragOverlay>
-          {activeTask && (
-            <div className="rounded-[var(--radius-md)] border border-primary/40 bg-surface-2 p-3 shadow-lg w-64 rotate-2">
-              <h4 className="text-sm font-medium text-foreground line-clamp-2">{activeTask.title}</h4>
+            {/* Add column button */}
+            <div className="flex flex-col w-72 shrink-0">
+              {addingColumn ? (
+                <div className="rounded-[var(--radius-lg)] border border-border/60 bg-surface-1 p-3">
+                  <input
+                    autoFocus
+                    value={newColName}
+                    onChange={(e) => setNewColName(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") void handleAddColumn();
+                      if (e.key === "Escape") { setAddingColumn(false); setNewColName(""); }
+                    }}
+                    placeholder="Nome da coluna"
+                    className="w-full text-sm bg-transparent border-b border-primary outline-none py-1 mb-3"
+                  />
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="primary"
+                      onClick={() => void handleAddColumn()}
+                      isLoading={addPending}
+                      loadingLabel="A criar..."
+                    >
+                      Adicionar
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="secondary"
+                      onClick={() => { setAddingColumn(false); setNewColName(""); }}
+                    >
+                      Cancelar
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setAddingColumn(true)}
+                  className="flex items-center gap-2 rounded-[var(--radius-lg)] border border-dashed border-border/60 px-4 py-3 text-sm text-muted-foreground hover:text-foreground hover:border-border transition-colors"
+                >
+                  <Plus className="size-4" />
+                  Adicionar coluna
+                </button>
+              )}
             </div>
-          )}
-          {activeCol && (
-            <div className="rounded-[var(--radius-lg)] border border-primary/40 bg-surface-1 p-4 shadow-lg w-72 opacity-90">
-              <h3 className="text-sm font-semibold text-foreground">{activeCol.name}</h3>
-            </div>
-          )}
-        </DragOverlay>
-      </DndContext>
+          </div>
+
+          {/* Drag Overlay */}
+          <DragOverlay>
+            {activeTask && (
+              <div className="rounded-[var(--radius-md)] border border-primary/40 bg-surface-2 p-3 shadow-lg w-64 rotate-2">
+                <h4 className="text-sm font-medium text-foreground line-clamp-2">{activeTask.title}</h4>
+              </div>
+            )}
+            {activeCol && (
+              <div className="rounded-[var(--radius-lg)] border border-primary/40 bg-surface-1 p-4 shadow-lg w-72 opacity-90">
+                <h3 className="text-sm font-semibold text-foreground">{activeCol.name}</h3>
+              </div>
+            )}
+          </DragOverlay>
+        </DndContext>
+      </div>
+
+      {/* Task detail dialog */}
+      {selectedTask && (
+        <TaskDetailDialog
+          open={dialogOpen}
+          onClose={() => { setDialogOpen(false); setSelectedTask(null); }}
+          task={selectedTask}
+          spaceLabels={spaceLabels as LabelItem[]}
+          currentUserId={currentUserId ?? ""}
+        />
+      )}
     </div>
   );
 }
