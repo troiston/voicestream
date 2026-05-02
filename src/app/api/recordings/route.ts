@@ -87,19 +87,22 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Sem permissão" }, { status: 403 });
   }
 
-  // 4. Verificar storage
-  let head;
+  // 4. Verificar storage (best-effort: se SeaweedFS via CDN der erro genérico,
+  // não bloqueia — o getObjectBytes a seguir vai falhar de qualquer forma se
+  // o objeto não existir, e lá já temos tratamento.)
   try {
-    head = await headObject({ key: storageKey });
+    const head = await headObject({ key: storageKey });
+    if (!head.exists) {
+      return NextResponse.json(
+        { error: "Upload não detectado no storage" },
+        { status: 400 }
+      );
+    }
   } catch (err) {
-    const detail = err instanceof Error ? err.message : "unknown";
-    logger.error({ err, detail }, "[recordings] headObject failed");
-    return NextResponse.json({ error: "Falha ao consultar storage", detail, stage: "head" }, { status: 500 });
-  }
-  if (!head.exists) {
-    return NextResponse.json(
-      { error: "Upload não detectado no storage" },
-      { status: 400 }
+    const e = err as { name?: string; code?: string; message?: string; $metadata?: { httpStatusCode?: number } };
+    logger.warn(
+      { name: e.name, code: e.code, message: e.message, status: e.$metadata?.httpStatusCode },
+      "[recordings] headObject error (non-fatal, prosseguindo)",
     );
   }
 
