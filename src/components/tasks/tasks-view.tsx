@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useCallback } from "react";
+import { useMemo, useState, useCallback, useTransition } from "react";
 import { Search, Grid3x3, Table as TableIcon } from "lucide-react";
 
 import type { TaskListItem, TaskColumnItem } from "@/types/domain";
@@ -10,7 +10,10 @@ import { Input } from "@/components/ui/input";
 import { CreateTaskDrawer } from "./create-task-drawer";
 import { TasksTable } from "./tasks-table";
 import { TasksKanban } from "./tasks-kanban";
+import { TaskDetailDialog, type TaskDetailData } from "./task-detail-dialog";
+import type { LabelItem } from "./labels-popover";
 import { cn } from "@/lib/utils";
+import { getTaskDetail } from "@/features/tasks/actions";
 
 export interface TasksViewProps {
   initialTasks: TaskListItem[];
@@ -50,6 +53,9 @@ export function TasksView({ initialTasks, initialColumns, defaultSpaceId, userId
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [sortKey, setSortKey] = useState<"title" | "dueAt" | null>(null);
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
+  const [detailTask, setDetailTask] = useState<TaskDetailData | null>(null);
+  const [detailOpen, setDetailOpen] = useState(false);
+  const [, startDetailTransition] = useTransition();
 
   const filteredTasks = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
@@ -124,6 +130,16 @@ export function TasksView({ initialTasks, initialColumns, defaultSpaceId, userId
     setPriorityFilter("all");
     setSearchQuery("");
   }, []);
+
+  const handleTaskClick = useCallback((taskId: string) => {
+    startDetailTransition(async () => {
+      const result = await getTaskDetail(taskId);
+      if (result.ok) {
+        setDetailTask(result.task as TaskDetailData);
+        setDetailOpen(true);
+      }
+    });
+  }, [startDetailTransition]);
 
   const hasActiveFilters = statusFilter !== "all" || priorityFilter !== "all" || searchQuery;
   const isEmpty = filteredTasks.length === 0;
@@ -270,6 +286,7 @@ export function TasksView({ initialTasks, initialColumns, defaultSpaceId, userId
           selected={selected}
           onSelectTask={toggleTaskSelect}
           onSelectAll={toggleSelectAll}
+          onOpenTask={handleTaskClick}
           onSort={toggleSort}
           onMarkComplete={markSelectedComplete}
           onDelete={deleteSelected}
@@ -289,6 +306,19 @@ export function TasksView({ initialTasks, initialColumns, defaultSpaceId, userId
           defaultSpaceId={defaultSpaceId}
           priorityVariant={priorityVariant}
           mode="global"
+          currentUserId={userId}
+        />
+      )}
+
+      {detailTask && (
+        <TaskDetailDialog
+          open={detailOpen}
+          onClose={() => {
+            setDetailOpen(false);
+            setDetailTask(null);
+          }}
+          task={detailTask}
+          spaceLabels={[] as LabelItem[]}
           currentUserId={userId}
         />
       )}

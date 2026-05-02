@@ -41,22 +41,31 @@ async function main() {
   const pro = await ensureProductWithPrice({
     lookupKey: "voicestream_pro_monthly_brl",
     name: "VoiceStream Pro",
-    description: "2.000 minutos de transcrição/mês, espaços ilimitados, prioridade na fila.",
-    amountCents: 2900,
-    metadata: { plan: "pro", minutes_per_month: "2000" },
+    description: "500 minutos de transcrição/mês, espaços ilimitados, transcrição avançada.",
+    amountCents: 5900,
+    metadata: { plan: "pro", minutes_per_month: "500" },
   });
 
   const enterprise = await ensureProductWithPrice({
     lookupKey: "voicestream_enterprise_monthly_brl",
     name: "VoiceStream Empresa",
-    description: "10.000 minutos/mês, SSO, exportação avançada, suporte dedicado.",
-    amountCents: 7900,
-    metadata: { plan: "enterprise", minutes_per_month: "10000" },
+    description: "2.000 minutos/mês, SSO/SAML, API e suporte prioritário.",
+    amountCents: 24900,
+    metadata: { plan: "enterprise", minutes_per_month: "2000" },
+  });
+
+  const addon = await ensureProductWithPrice({
+    lookupKey: "voicestream_addon_200_minutes_brl",
+    name: "VoiceStream Add-on +200 min",
+    description: "Pacote adicional de 200 minutos para ampliar a cota mensal.",
+    amountCents: 2900,
+    metadata: { kind: "addon", minutes: "200" },
   });
 
   console.log("\n[stripe] cole no .env:\n");
   console.log(`STRIPE_PRICE_PRO="${pro.priceId}"`);
   console.log(`STRIPE_PRICE_ENTERPRISE="${enterprise.priceId}"`);
+  console.log(`STRIPE_PRICE_ADDON_200_MINUTES="${addon.priceId}"`);
 }
 
 main().catch((e) => {

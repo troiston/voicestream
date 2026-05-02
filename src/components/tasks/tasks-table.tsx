@@ -22,6 +22,7 @@ interface TasksTableProps {
   selected: Set<string>;
   onSelectTask: (id: string) => void;
   onSelectAll: () => void;
+  onOpenTask: (id: string) => void;
   onSort: (key: "title" | "dueAt") => void;
   onMarkComplete: () => void;
   onDelete: () => void;
@@ -38,6 +39,7 @@ export function TasksTable({
   selected,
   onSelectTask,
   onSelectAll,
+  onOpenTask,
   onSort,
   onMarkComplete,
   onDelete,
@@ -114,6 +116,16 @@ export function TasksTable({
                   "border-border/60 hover:bg-surface-2/50 transition-colors cursor-pointer",
                   selected.has(task.id) && "bg-primary/5"
                 )}
+                tabIndex={0}
+                role="button"
+                aria-label={`Abrir tarefa ${task.title}`}
+                onClick={() => onOpenTask(task.id)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    onOpenTask(task.id);
+                  }
+                }}
               >
                 <TableCell
                   onClick={(e) => {

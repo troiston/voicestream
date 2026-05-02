@@ -2,6 +2,7 @@
 
 import { motion, useReducedMotion } from "framer-motion"
 import {
+  CalendarDays,
   LayoutDashboard,
   Layers,
   Mic,
@@ -47,6 +48,7 @@ const NAV_ICONS: Record<string, React.ElementType> = {
   "/onboarding": Sparkles,
   "/spaces": Layers,
   "/capture": Mic,
+  "/calendar": CalendarDays,
   "/tasks": CheckSquare,
   "/integrations": Plug,
   "/billing": CreditCard,
@@ -67,6 +69,7 @@ const NAV_GROUPS: NavGroup[] = [
       { href: "/dashboard", label: "Painel" },
       { href: "/spaces", label: "Espaços" },
       { href: "/capture", label: "Capturar" },
+      { href: "/calendar", label: "Calendário" },
       { href: "/tasks", label: "Tarefas" },
     ]
   },

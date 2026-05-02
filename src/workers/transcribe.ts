@@ -11,8 +11,25 @@ import { Prisma } from "@/generated/prisma/client";
 import { transcribeFromStorageKey } from "@/lib/transcription/deepgram";
 import { summarizeAndExtract } from "@/lib/llm/anthropic";
 import { encryptTranscriptText } from "@/lib/crypto/envelope";
+import { normalizeSuggestedTasks } from "@/lib/recordings/suggested-tasks";
 
 const QUEUE_NAME = "transcribe";
+
+type SummaryCreateWithSuggestedTasks = {
+  create(args: {
+    data: {
+      recordingId: string;
+      transcriptionId: string;
+      abstract: string;
+      decisions: string[];
+      nextSteps: string[];
+      suggestedTasks: unknown;
+      llmModel: string;
+      tokensInput?: number;
+      tokensOutput?: number;
+    };
+  }): Promise<unknown>;
+};
 
 const worker = new Worker<TranscribeJobData>(QUEUE_NAME, async (job: Job<TranscribeJobData>) => {
   const { recordingId } = job.data;
@@ -82,51 +99,63 @@ const worker = new Worker<TranscribeJobData>(QUEUE_NAME, async (job: Job<Transcr
       await tx.recording.update({ where: { id: recordingId }, data: { status: "transcribed" } });
     });
 
-    // 4) Anthropic — summary + tasks
+    // 4) Anthropic — summary + suggested tasks
     const summary = await summarizeAndExtract(t.text, { language: t.language });
 
-    // 5) Persist Summary + Tasks (transação)
+    // 5) Persist Summary + task suggestions (transação)
     await db.$transaction(async (tx) => {
       const trans = await tx.transcription.findUniqueOrThrow({ where: { recordingId }, select: { id: true } });
 
-      // Idempotência: limpar Summary e Tasks anteriores do mesmo recording
+      // Idempotência: limpar Summary anterior do mesmo recording.
+      // Tarefas reais são criadas só após confirmação humana na UI.
       await tx.summary.deleteMany({ where: { recordingId } });
-      await tx.task.deleteMany({ where: { recordingId } });
 
-      await tx.summary.create({
+      const [space, members] = await Promise.all([
+        tx.space.findUnique({
+          where: { id: recording.spaceId },
+          select: { name: true },
+        }),
+        tx.spaceMember.findMany({
+          where: { spaceId: recording.spaceId, status: "active" },
+          include: { user: { select: { id: true, name: true } } },
+        }),
+      ]);
+
+      const knownMembers = [
+        { id: recording.userId, name: "Autor da gravação" },
+        ...members
+          .filter((member) => member.user.name)
+          .map((member) => ({ id: member.user.id, name: member.user.name as string })),
+      ];
+
+      const suggestedTasks = normalizeSuggestedTasks(
+        summary.tasks.map((task) => ({
+          what: task.what || task.title,
+          why: task.why,
+          who: task.who,
+          when: task.when ?? task.dueAt,
+          where: task.where,
+          how: task.how,
+          howMuch: task.howMuch,
+          transcriptQuote: task.transcriptQuote,
+          priority: task.priority,
+        })),
+        { spaceName: space?.name ?? "VoiceStream", knownMembers },
+      );
+
+      await (tx.summary as unknown as SummaryCreateWithSuggestedTasks).create({
         data: {
           recordingId,
           transcriptionId: trans.id,
           abstract: summary.abstract,
           decisions: summary.decisions,
           nextSteps: summary.nextSteps,
+          suggestedTasks,
           llmModel: summary.model,
           tokensInput: summary.tokensInput,
           tokensOutput: summary.tokensOutput,
         },
       });
-
-      if (summary.tasks.length > 0) {
-        // Assign to first column of the space (order: 0), if any
-        const firstColumn = await tx.taskColumn.findFirst({
-          where: { spaceId: recording.spaceId },
-          orderBy: { order: "asc" },
-          select: { id: true },
-        });
-
-        await tx.task.createMany({
-          data: summary.tasks.map((task) => ({
-            spaceId: recording.spaceId,
-            recordingId,
-            creatorUserId: recording.userId,
-            columnId: firstColumn?.id ?? null,
-            title: task.title.slice(0, 200),
-            description: task.description,
-            priority: task.priority,
-            dueAt: task.dueAt ? new Date(task.dueAt) : null,
-          })),
-        });
-      }
 
       await tx.recording.update({ where: { id: recordingId }, data: { status: "summarized" } });
     });
@@ -152,7 +181,12 @@ const worker = new Worker<TranscribeJobData>(QUEUE_NAME, async (job: Job<Transcr
         action: "recording.transcribed",
         entityType: "Recording",
         entityId: recordingId,
-        metadata: { tokensInput: summary.tokensInput, tokensOutput: summary.tokensOutput, model: summary.model },
+        metadata: {
+          tokensInput: summary.tokensInput,
+          tokensOutput: summary.tokensOutput,
+          model: summary.model,
+          suggestedTasks: summary.tasks.length,
+        },
       },
     }).catch((e) => console.warn("[transcribe-worker] audit log failed", e));
 

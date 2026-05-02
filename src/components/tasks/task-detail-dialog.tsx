@@ -23,6 +23,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
+import type { TaskPriority, TaskStatus } from "@/generated/prisma/client";
 import {
   updateTask,
   archiveTask,
@@ -37,6 +38,7 @@ import {
   deleteAttachment,
 } from "@/features/tasks/actions";
 import { LabelsPopover, type LabelItem } from "@/components/tasks/labels-popover";
+import { buildRecordingExcerpt } from "@/components/tasks/task-detail-utils";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -77,13 +79,19 @@ export interface TaskDetailData {
   id: string;
   title: string;
   description: string;
+  status: TaskStatus;
+  priority: TaskPriority;
   dueAt: string | null;
   archivedAt: string | null;
   spaceId: string;
+  assignee: { id: string; name: string; image: string | null } | null;
   labels: { label: LabelItem }[];
   checklists: ChecklistData[];
   comments: CommentData[];
   attachments: AttachmentData[];
+  recordingTitle: string | null;
+  recordingCapturedAt: string | null;
+  recordingExcerpt: string | null;
 }
 
 interface TaskDetailDialogProps {
@@ -107,6 +115,19 @@ const COLOR_BG: Record<string, string> = {
   purple: "bg-purple-500",
   pink: "bg-pink-500",
   gray: "bg-gray-400",
+};
+
+const STATUS_CONFIG: Record<TaskStatus, { label: string; variant: "success" | "default" | "warning" | "danger" }> = {
+  pendente: { label: "Pendente", variant: "warning" },
+  em_curso: { label: "Em curso", variant: "default" },
+  concluida: { label: "Concluída", variant: "success" },
+  cancelada: { label: "Cancelada", variant: "danger" },
+};
+
+const PRIORITY_CONFIG: Record<TaskPriority, { label: string; variant: "danger" | "warning" | "info" }> = {
+  alta: { label: "Alta", variant: "danger" },
+  media: { label: "Média", variant: "warning" },
+  baixa: { label: "Baixa", variant: "info" },
 };
 
 // ---------------------------------------------------------------------------
@@ -660,6 +681,9 @@ export function TaskDetailDialog({
   const [taskLabels, setTaskLabels] = useState<LabelItem[]>(
     task.labels.map((tl) => tl.label),
   );
+  const [activeSection, setActiveSection] = useState<
+    "detalhes" | "checklist" | "comentarios" | "anexos" | "origem"
+  >("detalhes");
   const [isPending, startTransition] = useTransition();
 
   // Sync state when task id changes (different task opened)
@@ -669,6 +693,7 @@ export function TaskDetailDialog({
     setDueDate(task.dueAt ? task.dueAt.split("T")[0] : "");
     setArchived(!!task.archivedAt);
     setTaskLabels(task.labels.map((tl) => tl.label));
+    setActiveSection("detalhes");
   }, [task.id]); // intentionally keyed on id only to avoid infinite loops
 
   const handleTitleChange = (newTitle: string) => {
@@ -698,22 +723,56 @@ export function TaskDetailDialog({
     });
   };
 
+  const originExcerpt = buildRecordingExcerpt(task.recordingExcerpt, null);
+
   return (
-    <Dialog open={open} onOpenChange={(o) => { if (!o) onClose(); }}>
+    <Dialog open={open} onOpenChange={(o) => {
+      if (!o) onClose();
+    }}>
       <DialogContent
         className={cn(
-          "max-w-3xl w-full p-0 overflow-hidden",
+          "max-w-5xl w-full p-0 overflow-hidden",
           "max-h-[90vh] flex flex-col",
           "md:max-h-[85vh]",
         )}
         aria-labelledby="task-detail-title"
       >
         {/* Header */}
-        <DialogHeader className="px-6 pt-5 pb-3 border-b border-border/40 shrink-0">
-          <div className="flex items-start gap-3">
-            {/* Label chips */}
+        <DialogHeader className="shrink-0 border-b border-border/40 px-6 pt-5 pb-4">
+          <DialogTitle id="task-detail-title" className="sr-only">
+            {title}
+          </DialogTitle>
+          <div className="space-y-3">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div className="min-w-0 flex-1 space-y-2">
+                <InlineTitle key={task.id} value={title} onChange={handleTitleChange} />
+                <div className="flex flex-wrap items-center gap-2">
+                  <Badge variant={STATUS_CONFIG[task.status].variant}>
+                    {STATUS_CONFIG[task.status].label}
+                  </Badge>
+                  <Badge variant={PRIORITY_CONFIG[task.priority].variant}>
+                    Prioridade {PRIORITY_CONFIG[task.priority].label}
+                  </Badge>
+                  {task.dueAt && (
+                    <Badge variant="outline">
+                      Prazo {formatDatePt(task.dueAt)}
+                    </Badge>
+                  )}
+                  {task.assignee && (
+                    <Badge variant="muted">
+                      Responsável {task.assignee.name}
+                    </Badge>
+                  )}
+                  {archived && (
+                    <Badge variant="muted">
+                      Arquivada
+                    </Badge>
+                  )}
+                </div>
+              </div>
+            </div>
             {taskLabels.length > 0 && (
-              <div className="flex flex-wrap gap-1 mt-0.5">
+              <div className="flex flex-wrap gap-1.5">
                 {taskLabels.map((l) => (
                   <span
                     key={l.id}
@@ -728,95 +787,241 @@ export function TaskDetailDialog({
               </div>
             )}
           </div>
-          <DialogTitle id="task-detail-title" className="sr-only">
-            {title}
-          </DialogTitle>
-          <InlineTitle value={title} onChange={handleTitleChange} />
-          {archived && (
-            <Badge variant="muted" className="w-fit text-xs">
-              Arquivada
-            </Badge>
-          )}
         </DialogHeader>
 
-        {/* Body */}
-        <div className="flex flex-1 overflow-hidden flex-col md:flex-row">
-          {/* Main content */}
-          <div className="flex-1 overflow-y-auto px-6 py-4 space-y-6">
-            <DescriptionField
-              value={task.description}
-              onSave={handleDescriptionSave}
-            />
-            <ChecklistSection
-              taskId={task.id}
-              checklists={task.checklists}
-            />
-            <CommentsSection
-              taskId={task.id}
-              comments={task.comments}
-              currentUserId={currentUserId}
-            />
-            <AttachmentsSection
-              taskId={task.id}
-              attachments={task.attachments}
-            />
+        <div className="flex flex-1 min-h-0 flex-col">
+          <div
+            className="flex flex-wrap gap-1 border-b border-border/40 px-6 py-3"
+            role="tablist"
+            aria-label="Seções da tarefa"
+          >
+            {[
+              ["detalhes", "Detalhes"],
+              ["checklist", "Checklist"],
+              ["comentarios", "Comentários"],
+              ["anexos", "Anexos"],
+              ["origem", "Origem"],
+            ].map(([id, label]) => {
+              const active = activeSection === id;
+              return (
+                <button
+                  key={id}
+                  type="button"
+                  id={`task-detail-tab-${id}`}
+                  role="tab"
+                  aria-selected={active}
+                  aria-controls={`task-detail-panel-${id}`}
+                  onClick={() => setActiveSection(id as typeof activeSection)}
+                  className={cn(
+                    "rounded-md px-3 py-2 text-sm font-medium transition-colors",
+                    active
+                      ? "bg-surface-1 text-foreground ring-1 ring-border"
+                      : "text-muted-foreground hover:text-foreground",
+                  )}
+                >
+                  {label}
+                </button>
+              );
+            })}
           </div>
 
-          {/* Sidebar */}
-          <div className="md:w-52 shrink-0 border-t md:border-t-0 md:border-l border-border/40 px-4 py-4 space-y-2">
-            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">
-              Ações
-            </p>
+          <div className="min-h-0 flex-1 overflow-y-auto px-6 py-4">
+            <section
+              id="task-detail-panel-detalhes"
+              role="tabpanel"
+              aria-labelledby="task-detail-tab-detalhes"
+              hidden={activeSection !== "detalhes"}
+              className="space-y-6"
+            >
+              <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_18rem]">
+                <div className="space-y-6">
+                  <DescriptionField
+                    key={`${task.id}-description`}
+                    value={task.description}
+                    onSave={handleDescriptionSave}
+                  />
+                </div>
 
-            {/* Labels popover */}
-            <LabelsPopover
-              taskId={task.id}
-              spaceId={task.spaceId}
-              spaceLabels={spaceLabels}
-              taskLabels={taskLabels}
-              onLabelsChange={setTaskLabels}
-            />
+                <aside className="space-y-4 rounded-[var(--radius-lg)] border border-border/60 bg-surface-1 p-4">
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                      <Calendar className="size-4" />
+                      Metadados
+                    </div>
+                    <div className="space-y-1">
+                      <label
+                        htmlFor="task-due-date"
+                        className="text-xs font-medium text-muted-foreground"
+                      >
+                        Prazo
+                      </label>
+                      <input
+                        id="task-due-date"
+                        type="date"
+                        value={dueDate}
+                        onChange={handleDueDateChange}
+                        disabled={isPending}
+                        className="w-full text-sm h-9 px-2 rounded-[var(--radius-md)] border border-input bg-transparent outline-none focus:ring-2 focus:ring-ring/50"
+                        aria-label="Data de vencimento"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-xs font-medium text-muted-foreground">
+                        Etiquetas
+                      </p>
+                      {spaceLabels.length > 0 ? (
+                        <LabelsPopover
+                          taskId={task.id}
+                          spaceId={task.spaceId}
+                          spaceLabels={spaceLabels}
+                          taskLabels={taskLabels}
+                          onLabelsChange={setTaskLabels}
+                        />
+                      ) : (
+                        <p className="text-sm text-muted-foreground">
+                          Etiquetas não disponíveis nesta visão.
+                        </p>
+                      )}
+                    </div>
+                    {task.assignee && (
+                      <div className="space-y-1">
+                        <p className="text-xs font-medium text-muted-foreground">
+                          Responsável
+                        </p>
+                        <p className="text-sm text-foreground">{task.assignee.name}</p>
+                      </div>
+                    )}
+                  </div>
 
-            {/* Due date */}
-            <div className="space-y-1">
-              <label
-                htmlFor="task-due-date"
-                className="flex items-center gap-2 text-sm text-muted-foreground cursor-pointer"
-              >
-                <Calendar className="size-4" />
-                Prazo
-              </label>
-              <input
-                id="task-due-date"
-                type="date"
-                value={dueDate}
-                onChange={handleDueDateChange}
-                disabled={isPending}
-                className="w-full text-sm h-8 px-2 rounded-[var(--radius-md)] border border-input bg-transparent outline-none focus:ring-2 focus:ring-ring/50"
-                aria-label="Data de vencimento"
+                  <div className="border-t border-border/40 pt-4">
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      size="sm"
+                      onClick={handleArchive}
+                      isLoading={isPending}
+                      loadingLabel="A arquivar…"
+                      disabled={archived || isPending}
+                      className="w-full justify-start gap-2 text-destructive hover:text-destructive"
+                      aria-label="Arquivar tarefa"
+                    >
+                      <Archive className="size-4" />
+                      Arquivar
+                    </Button>
+                  </div>
+                </aside>
+              </div>
+            </section>
+
+            <section
+              id="task-detail-panel-checklist"
+              role="tabpanel"
+              aria-labelledby="task-detail-tab-checklist"
+              hidden={activeSection !== "checklist"}
+            >
+              <ChecklistSection
+                key={`${task.id}-checklists`}
+                taskId={task.id}
+                checklists={task.checklists}
               />
-            </div>
+            </section>
 
-            {/* Separator + Archive */}
-            <div className="pt-3 border-t border-border/40 mt-3">
-              <Button
-                type="button"
-                variant="secondary"
-                size="sm"
-                onClick={handleArchive}
-                isLoading={isPending}
-                loadingLabel="A arquivar…"
-                disabled={archived || isPending}
-                className="w-full justify-start gap-2 text-destructive hover:text-destructive"
-                aria-label="Arquivar tarefa"
-              >
-                <Archive className="size-4" />
-                Arquivar
-              </Button>
-            </div>
+            <section
+              id="task-detail-panel-comentarios"
+              role="tabpanel"
+              aria-labelledby="task-detail-tab-comentarios"
+              hidden={activeSection !== "comentarios"}
+            >
+              <CommentsSection
+                key={`${task.id}-comments`}
+                taskId={task.id}
+                comments={task.comments}
+                currentUserId={currentUserId}
+              />
+            </section>
+
+            <section
+              id="task-detail-panel-anexos"
+              role="tabpanel"
+              aria-labelledby="task-detail-tab-anexos"
+              hidden={activeSection !== "anexos"}
+            >
+              <AttachmentsSection
+                key={`${task.id}-attachments`}
+                taskId={task.id}
+                attachments={task.attachments}
+              />
+            </section>
+
+            <section
+              id="task-detail-panel-origem"
+              role="tabpanel"
+              aria-labelledby="task-detail-tab-origem"
+              hidden={activeSection !== "origem"}
+              className="space-y-4"
+            >
+              <div className="space-y-2 rounded-[var(--radius-lg)] border border-border/60 bg-surface-1 p-4">
+                <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                  <MessageSquare className="size-4" />
+                  Gravação de origem
+                </div>
+                {task.recordingTitle || task.recordingCapturedAt ? (
+                  <div className="space-y-1 text-sm">
+                    <p className="font-medium text-foreground">
+                      {task.recordingTitle ?? "Sem título"}
+                    </p>
+                    {task.recordingCapturedAt && (
+                      <p className="text-xs text-muted-foreground">
+                        Capturada em {formatDateTimePt(task.recordingCapturedAt)}
+                      </p>
+                    )}
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground">
+                    Nenhuma gravação vinculada a esta tarefa.
+                  </p>
+                )}
+              </div>
+
+              <div className="space-y-2 rounded-[var(--radius-lg)] border border-border/60 bg-surface-1 p-4">
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  Trecho / descrição
+                </p>
+                {originExcerpt ? (
+                  <p className="whitespace-pre-wrap text-sm leading-relaxed text-foreground">
+                    {originExcerpt}
+                  </p>
+                ) : (
+                  <p className="text-sm text-muted-foreground">
+                    Nenhum trecho ou descrição disponível.
+                  </p>
+                )}
+              </div>
+            </section>
           </div>
         </div>
       </DialogContent>
     </Dialog>
   );
+}
+
+function formatDatePt(iso: string | null): string {
+  if (!iso) return "—";
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return iso;
+  return new Intl.DateTimeFormat("pt-BR", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  }).format(date);
+}
+
+function formatDateTimePt(iso: string | null): string {
+  if (!iso) return "—";
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return iso;
+  return new Intl.DateTimeFormat("pt-BR", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(date);
 }

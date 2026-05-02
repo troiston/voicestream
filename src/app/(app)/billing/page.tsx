@@ -10,7 +10,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Progress } from "@/components/ui/progress";
 import { requireSession } from "@/features/auth/guards";
 import { getCurrentPlan } from "@/lib/billing/get-current-plan";
-import { PLAN_LIMITS } from "@/lib/billing/plans";
+import { BILLING_ADD_ONS, BILLING_PLAN_ORDER, BILLING_PLANS, formatBRLFromCents, PLAN_LIMITS } from "@/lib/billing/plans";
 import { getMonthlyMinutesUsed } from "@/lib/billing/get-monthly-usage";
 import { stripe } from "@/lib/stripe.service";
 import type { InvoiceRow } from "@/components/app/invoices-table";
@@ -22,40 +22,17 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-const money = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
-
 function formatDate(iso: string): string {
   return new Intl.DateTimeFormat("pt-BR", { dateStyle: "medium" }).format(new Date(iso));
 }
 
-function getPlanLabel(planKey: "free" | "pro" | "enterprise"): string {
-  const labels: Record<"free" | "pro" | "enterprise", string> = {
-    free: "Gratuito",
-    pro: "Pro",
-    enterprise: "Empresa",
-  };
-  return labels[planKey];
-}
-
-const PLAN_FEATURES: Record<string, string[]> = {
-  Gratuito: ["200 minutos/mês", "1 espaço", "Transcrição básica"],
-  Pro: ["2000 minutos/mês", "Espaços ilimitados", "Transcrição avançada", "Exportação CSV"],
-  Empresa: ["10000 minutos/mês", "Espaços ilimitados", "Acesso à API", "Suporte prioritário", "SSO / SAML"],
-};
-
-const PLAN_PRICES: Record<string, string> = {
-  Gratuito: "R$ 0",
-  Pro: "R$ 29",
-  Empresa: "R$ 79",
-};
-
-async function BillingContent(props: { checkoutStatus: string | null }) {
+async function BillingContent() {
   const session = await requireSession();
   const { plan: currentPlanKey, subscription } = await getCurrentPlan(session.userId);
   const minutesUsed = await getMonthlyMinutesUsed(session.userId);
 
-  const planLabel = getPlanLabel(currentPlanKey);
   const planLimit = PLAN_LIMITS[currentPlanKey];
+  const currentPlan = BILLING_PLANS[currentPlanKey];
   const usagePercent = planLimit.minutesPerMonth === 0 ? 0 : Math.min(
     Math.round((minutesUsed / planLimit.minutesPerMonth) * 100),
     100
@@ -94,9 +71,6 @@ async function BillingContent(props: { checkoutStatus: string | null }) {
     ? Math.max(1, Math.ceil((subscription.currentPeriodEnd.getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
     : null;
 
-  // checkoutStatus virá de searchParams da page (passado pelo wrapper async).
-  const checkoutStatus = props.checkoutStatus;
-
   return (
     <div className="space-y-8">
       <div>
@@ -112,12 +86,10 @@ async function BillingContent(props: { checkoutStatus: string | null }) {
           Planos disponíveis
         </h2>
         <div className="grid gap-4 md:grid-cols-3">
-          {(["free", "pro", "enterprise"] as const).map((planKey) => {
-            const planName = getPlanLabel(planKey);
+          {BILLING_PLAN_ORDER.map((planKey) => {
+            const plan = BILLING_PLANS[planKey];
             const isCurrent = currentPlanKey === planKey;
             const isRecommended = planKey === "pro";
-            const price = PLAN_PRICES[planName];
-            const features = PLAN_FEATURES[planName] ?? [];
 
             return (
               <div
@@ -129,9 +101,9 @@ async function BillingContent(props: { checkoutStatus: string | null }) {
                       ? "flex flex-col rounded-[var(--radius-xl)] border border-brand/30 bg-brand/10 p-5"
                       : "flex flex-col rounded-[var(--radius-xl)] border border-border/60 bg-surface-1 p-5"
                 }
-              >
+                >
                 <div className="flex items-center justify-between gap-2">
-                  <span className="text-base font-semibold text-foreground">{planName}</span>
+                  <span className="text-base font-semibold text-foreground">{plan.label}</span>
                   {isRecommended && (
                     <Badge variant="info">Recomendado</Badge>
                   )}
@@ -140,11 +112,11 @@ async function BillingContent(props: { checkoutStatus: string | null }) {
                   )}
                 </div>
                 <p className="gradient-text mt-3 text-3xl font-bold">
-                  {price}
+                  {formatBRLFromCents(plan.priceCents)}
                   <span className="text-base font-normal text-muted-foreground">/mês</span>
                 </p>
                 <ul className="mt-4 flex-1 space-y-2">
-                  {features.map((f) => (
+                  {plan.features.map((f) => (
                     <li key={f} className="flex items-center gap-2 text-sm text-muted-foreground">
                       <svg
                         className="h-4 w-4 shrink-0 text-brand"
@@ -186,6 +158,42 @@ async function BillingContent(props: { checkoutStatus: string | null }) {
         </div>
       </section>
 
+      <section aria-labelledby="addons-heading">
+        <h2 id="addons-heading" className="mb-4 text-lg font-semibold tracking-tight text-foreground">
+          Add-ons
+        </h2>
+        <div className="grid gap-4 md:max-w-md">
+          {Object.values(BILLING_ADD_ONS).map((addon) => (
+            <div key={addon.key} className="flex flex-col rounded-[var(--radius-xl)] border border-border/60 bg-surface-1 p-5">
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-base font-semibold text-foreground">{addon.label}</span>
+                <Badge variant="secondary">Extra</Badge>
+              </div>
+              <p className="mt-2 text-sm text-muted-foreground">{addon.description}</p>
+              <p className="gradient-text mt-3 text-3xl font-bold">
+                {formatBRLFromCents(addon.priceCents)}
+                <span className="text-base font-normal text-muted-foreground">/pacote</span>
+              </p>
+              <ul className="mt-4 flex-1 space-y-2">
+                <li className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <svg
+                    className="h-4 w-4 shrink-0 text-brand"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                    viewBox="0 0 24 24"
+                    aria-hidden="true"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                  </svg>
+                  {addon.minutes} minutos adicionais
+                </li>
+              </ul>
+            </div>
+          ))}
+        </div>
+      </section>
+
       {/* Current plan usage */}
       <section aria-labelledby="plan-heading" className="grid gap-4 lg:grid-cols-3">
         <Card className="border border-border/60 bg-surface-1 lg:col-span-2">
@@ -196,7 +204,7 @@ async function BillingContent(props: { checkoutStatus: string | null }) {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="text-lg font-semibold text-foreground">{planLabel}</span>
+              <span className="text-lg font-semibold text-foreground">{currentPlan.label}</span>
               {subscription && <Badge variant="success">Ativo</Badge>}
             </div>
             {nextBillingDate && (
@@ -281,12 +289,7 @@ async function BillingContent(props: { checkoutStatus: string | null }) {
   );
 }
 
-export default async function BillingPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ checkout?: string }>;
-}) {
-  const params = await searchParams;
+export default async function BillingPage() {
   return (
     <Suspense
       fallback={
@@ -301,7 +304,7 @@ export default async function BillingPage({
         </div>
       }
     >
-      <BillingContent checkoutStatus={params.checkout ?? null} />
+      <BillingContent />
     </Suspense>
   );
 }

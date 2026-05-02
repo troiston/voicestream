@@ -4,17 +4,27 @@ import { motion, useReducedMotion } from "framer-motion";
 import Link from "next/link";
 import { useMemo, useState, type FormEvent, type ReactNode } from "react";
 
-import type { SpaceItem, SpaceFeedItem, TaskListItem, TaskColumnItem } from "@/types/domain";
+import type {
+  RecordingDetailItem,
+  SpaceItem,
+  SpaceFeedItem,
+  SpaceMemberOption,
+  TaskListItem,
+  TaskColumnItem,
+} from "@/types/domain";
 import type { TaskPriority } from "@/generated/prisma/client";
 import { SimpleTabs } from "@/components/ui/simple-tabs";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { TasksKanban } from "@/components/tasks/tasks-kanban";
+import { RecordingDetailCard } from "@/components/app/recording-detail-card";
 
 export interface SpaceDetailViewProps {
   space: SpaceItem;
   initialFeed: SpaceFeedItem[];
+  recordings: RecordingDetailItem[];
+  members: SpaceMemberOption[];
   initialTasks: TaskListItem[];
   initialColumns: TaskColumnItem[];
   userId?: string;
@@ -32,7 +42,15 @@ const kindLabel: Record<SpaceFeedItem["kind"], string> = {
   task: "Tarefa",
 };
 
-export function SpaceDetailView({ space, initialFeed, initialTasks, initialColumns, userId }: SpaceDetailViewProps) {
+export function SpaceDetailView({
+  space,
+  initialFeed,
+  recordings,
+  members,
+  initialTasks,
+  initialColumns,
+  userId,
+}: SpaceDetailViewProps) {
   const reduce = useReducedMotion();
   const [items, setItems] = useState<SpaceFeedItem[]>(initialFeed);
   const [draft, setDraft] = useState("");
@@ -78,9 +96,27 @@ export function SpaceDetailView({ space, initialFeed, initialTasks, initialColum
             role="list"
             aria-label="Histórico do espaço"
           >
-            {sorted.map((m, i) => (
-              <motion.li
-                key={m.id}
+            {recordings.length > 0 ? (
+              recordings.map((recording, i) => (
+                <motion.li
+                  key={recording.id}
+                  layout={!reduce}
+                  initial={reduce ? false : { opacity: 0, y: 8 }}
+                  animate={reduce ? undefined : { opacity: 1, y: 0 }}
+                  transition={{
+                    type: "spring",
+                    stiffness: 260,
+                    damping: 28,
+                    delay: reduce ? 0 : Math.min(i * 0.03, 0.24),
+                  }}
+                >
+                  <RecordingDetailCard recording={recording} members={members} />
+                </motion.li>
+              ))
+            ) : (
+              sorted.map((m, i) => (
+                <motion.li
+                  key={m.id}
                 layout={!reduce}
                 initial={reduce ? false : { opacity: 0, y: 8 }}
                 animate={reduce ? undefined : { opacity: 1, y: 0 }}
@@ -100,7 +136,8 @@ export function SpaceDetailView({ space, initialFeed, initialTasks, initialColum
                 </div>
                 <p className="mt-2 text-sm leading-relaxed">{m.body}</p>
               </motion.li>
-            ))}
+              ))
+            )}
           </motion.ul>
 
           <aside className="rounded-[var(--radius-lg)] border border-border bg-surface-1 p-4">

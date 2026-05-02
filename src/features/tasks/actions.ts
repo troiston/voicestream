@@ -10,6 +10,7 @@ import {
   presignGetUrl,
   deleteObject,
 } from "@/lib/storage/seaweed";
+import { buildRecordingExcerpt } from "@/components/tasks/task-detail-utils";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -493,6 +494,14 @@ export async function getTaskDetail(taskId: string) {
         },
         attachments: { orderBy: { uploadedAt: "asc" } },
         assignee: { select: { id: true, name: true, image: true } },
+        recording: {
+          select: {
+            title: true,
+            capturedAt: true,
+            summary: { select: { abstract: true } },
+            transcription: { select: { text: true } },
+          },
+        },
       },
     });
 
@@ -506,6 +515,11 @@ export async function getTaskDetail(taskId: string) {
       })),
     );
 
+    const comments = task.comments.map((comment) => ({
+      ...comment,
+      createdAt: comment.createdAt.toISOString(),
+    }));
+
     return {
       ok: true as const,
       task: {
@@ -515,6 +529,15 @@ export async function getTaskDetail(taskId: string) {
         archivedAt: task.archivedAt?.toISOString() ?? null,
         createdAt: task.createdAt.toISOString(),
         updatedAt: task.updatedAt.toISOString(),
+        recordingTitle: task.recording?.title ?? null,
+        recordingCapturedAt: task.recording?.capturedAt
+          ? task.recording.capturedAt.toISOString()
+          : null,
+        recordingExcerpt: buildRecordingExcerpt(
+          task.recording?.summary?.abstract ?? null,
+          task.recording?.transcription?.text ?? null,
+        ),
+        comments,
         attachments: attachmentsWithUrls,
       },
     };

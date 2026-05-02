@@ -26,6 +26,57 @@ export type SpaceFeedItem = {
   kind: "voice" | "note" | "task";
 };
 
+export type SpaceMemberOption = {
+  id: string;
+  name: string;
+};
+
+export type RecordingSuggestedTaskItem = {
+  id: string;
+  title: string;
+  description: string;
+  priority: TaskPriority;
+  dueAt: string | null;
+  assigneeUserId: string | null;
+  assigneeName: string | null;
+  assigneeStatus: "matched" | "missing" | "not_found" | "explicitly_unassigned";
+  canCreate: boolean;
+  fields: {
+    what: string;
+    why: string | null;
+    who: string | null;
+    when: string | null;
+    where: string;
+    how: string | null;
+    howMuch: string | null;
+  };
+  transcriptQuote: string | null;
+};
+
+export type RecordingDetailItem = {
+  id: string;
+  title: string | null;
+  status: string;
+  statusLabel: string;
+  statusClassName: string;
+  capturedAt: string;
+  durationSec: number;
+  streamUrl: string;
+  author: string;
+  abstract: string | null;
+  decisions: string[];
+  nextSteps: string[];
+  transcript: string | null;
+  segments: Array<{
+    id: string;
+    speaker: string | null;
+    startMs: number;
+    endMs: number;
+    text: string;
+  }>;
+  suggestedTasks: RecordingSuggestedTaskItem[];
+};
+
 export type TaskListItem = {
   id: string;
   title: string;

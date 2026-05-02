@@ -4,8 +4,19 @@ import { notFound } from "next/navigation";
 import { requireSession } from "@/features/auth/guards";
 import { db } from "@/lib/db";
 import { SpaceDetailView } from "@/components/app/space-detail-view";
-import type { SpaceItem, SpaceFeedItem, TaskListItem, TaskColumnItem } from "@/types/domain";
-import { decryptTranscriptIfNeeded } from "@/lib/crypto/transcripts";
+import type {
+  RecordingDetailItem,
+  SpaceItem,
+  SpaceFeedItem,
+  SpaceMemberOption,
+  TaskListItem,
+  TaskColumnItem,
+} from "@/types/domain";
+import {
+  decryptSegmentIfNeeded,
+  decryptTranscriptIfNeeded,
+} from "@/lib/crypto/transcripts";
+import { getRecordingStatusView } from "@/lib/recordings/presentation";
 
 type PageProps = { params: Promise<{ id: string }> };
 
@@ -39,13 +50,37 @@ export default async function SpaceDetailPage({ params }: PageProps) {
   }
 
   // Fetch recordings, tasks, and columns in parallel
-  const [recordings, tasks, columns] = await Promise.all([
+  const [recordings, tasks, columns, memberRows] = await Promise.all([
     db.recording.findMany({
       where: { spaceId: id },
       include: {
         user: { select: { name: true } },
-        transcription: { select: { text: true, encrypted: true } },
-        summary: { select: { abstract: true } },
+        transcription: {
+          select: {
+            id: true,
+            text: true,
+            encrypted: true,
+            segments: {
+              select: {
+                id: true,
+                speaker: true,
+                startMs: true,
+                endMs: true,
+                text: true,
+                encrypted: true,
+              },
+              orderBy: { startMs: "asc" },
+            },
+          },
+        },
+        summary: {
+          select: {
+            abstract: true,
+            decisions: true,
+            nextSteps: true,
+            suggestedTasks: true,
+          } as any,
+        },
       },
       orderBy: { capturedAt: "desc" },
       take: 20,
@@ -62,7 +97,17 @@ export default async function SpaceDetailPage({ params }: PageProps) {
       where: { spaceId: id },
       orderBy: { order: "asc" },
     }),
+    db.spaceMember.findMany({
+      where: { spaceId: id, status: "active" },
+      include: { user: { select: { id: true, name: true } } },
+      orderBy: { invitedAt: "asc" },
+    }),
   ]);
+
+  const members: SpaceMemberOption[] = [
+    { id: space.ownerId, name: "Dono do espaço" },
+    ...memberRows.map((member) => ({ id: member.user.id, name: member.user.name })),
+  ];
 
   const feed: SpaceFeedItem[] = recordings.map((r) => {
     const decrypted = decryptTranscriptIfNeeded(r.transcription, r.userId);
@@ -76,6 +121,50 @@ export default async function SpaceDetailPage({ params }: PageProps) {
         `Gravação: ${r.title || "Sem título"}`,
       at: r.capturedAt.toISOString(),
       kind: "voice" as const,
+    };
+  });
+
+  const detailedRecordings: RecordingDetailItem[] = recordings.map((r) => {
+    const decrypted = decryptTranscriptIfNeeded(r.transcription, r.userId);
+    const status = getRecordingStatusView(r.status);
+    const summary = r.summary as
+      | {
+          abstract: string;
+          decisions: string[];
+          nextSteps: string[];
+          suggestedTasks?: unknown;
+        }
+      | null;
+    const suggestedTasks = Array.isArray(summary?.suggestedTasks)
+      ? summary.suggestedTasks
+      : [];
+
+    return {
+      id: r.id,
+      title: r.title,
+      status: r.status,
+      statusLabel: status.label,
+      statusClassName: status.className,
+      capturedAt: r.capturedAt.toISOString(),
+      durationSec: r.durationSec,
+      streamUrl: `/api/recordings/${r.id}/audio`,
+      author: r.user.name || "Anónimo",
+      abstract: summary?.abstract ?? null,
+      decisions: summary?.decisions ?? [],
+      nextSteps: summary?.nextSteps ?? [],
+      transcript: decrypted?.text ?? null,
+      segments:
+        decrypted?.segments?.map((segment) => {
+          const item = decryptSegmentIfNeeded(segment, r.userId);
+          return {
+            id: item.id,
+            speaker: item.speaker,
+            startMs: item.startMs,
+            endMs: item.endMs,
+            text: item.text,
+          };
+        }) ?? [],
+      suggestedTasks: suggestedTasks as RecordingDetailItem["suggestedTasks"],
     };
   });
 
@@ -118,6 +207,8 @@ export default async function SpaceDetailPage({ params }: PageProps) {
     <SpaceDetailView
       space={adaptedSpace}
       initialFeed={feed}
+      recordings={detailedRecordings}
+      members={members}
       initialTasks={initialTasks}
       initialColumns={initialColumns}
       userId={session.userId}

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { RecorderClient } from "@/components/capture/recorder-client";
+import { getRecordingStatusView } from "@/lib/recordings/presentation";
 
 export interface CaptureSpace {
   id: string;
@@ -41,20 +42,6 @@ function relativeTime(iso: string): string {
   const diffD = Math.floor(diffH / 24);
   return `${diffD}d atrás`;
 }
-
-const STATUS_LABEL: Record<string, string> = {
-  uploaded: "Enviado",
-  transcribing: "Transcrevendo",
-  transcribed: "Transcrito",
-  failed: "Erro",
-};
-
-const STATUS_CLASS: Record<string, string> = {
-  uploaded: "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300",
-  transcribing: "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-300",
-  transcribed: "bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300",
-  failed: "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300",
-};
 
 export function CaptureWorkspace({ spaces, history }: CaptureWorkspaceProps) {
   const router = useRouter();
@@ -131,24 +118,27 @@ export function CaptureWorkspace({ spaces, history }: CaptureWorkspaceProps) {
               Sem gravações ainda.
             </li>
           ) : (
-            history.map((item) => (
-              <li
-                key={item.id}
-                className="rounded-[var(--radius-lg)] border border-border/60 bg-surface-1 px-4 py-3 mb-2 last:mb-0 hover:border-brand/20 hover:bg-surface-2/50 transition-colors"
-              >
-                <p className="text-sm font-medium leading-snug text-foreground">
-                  {item.title ?? "Sem título"}
-                </p>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  {item.spaceName} · {relativeTime(item.capturedAt)} · {formatDuration(item.durationSec)}
-                </p>
-                <span
-                  className={`mt-1.5 inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold ${STATUS_CLASS[item.status] ?? "bg-surface-2 text-muted-foreground"}`}
+            history.map((item) => {
+              const status = getRecordingStatusView(item.status);
+              return (
+                <li
+                  key={item.id}
+                  className="rounded-[var(--radius-lg)] border border-border/60 bg-surface-1 px-4 py-3 mb-2 last:mb-0 hover:border-brand/20 hover:bg-surface-2/50 transition-colors"
                 >
-                  {STATUS_LABEL[item.status] ?? item.status}
-                </span>
-              </li>
-            ))
+                  <p className="text-sm font-medium leading-snug text-foreground">
+                    {item.title ?? "Sem título"}
+                  </p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {item.spaceName} · {relativeTime(item.capturedAt)} · {formatDuration(item.durationSec)}
+                  </p>
+                  <span
+                    className={`mt-1.5 inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold ${status.className}`}
+                  >
+                    {status.label}
+                  </span>
+                </li>
+              );
+            })
           )}
         </ul>
       </aside>

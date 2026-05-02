@@ -7,6 +7,14 @@ export const MODEL_DEFAULT = "claude-sonnet-4-6";
 export type ExtractedTask = {
   title: string;
   description: string;
+  what: string;
+  why: string | null;
+  who: string | null;
+  when: string | null;
+  where: string | null;
+  how: string | null;
+  howMuch: string | null;
+  transcriptQuote: string | null;
   priority: "baixa" | "media" | "alta";
   dueAt: string | null;
 };
@@ -37,9 +45,17 @@ const SYSTEM_PROMPT = `Você é um assistente especializado em analisar transcri
 
 3. **nextSteps**: uma lista de próximos passos ou ações combinadas que NÃO possuem um dono/responsável claramente identificado na conversa. Cada item é uma frase descrevendo a ação. Se não houver, retorne array vazio.
 
-4. **tasks**: uma lista de tarefas concretas com responsável claramente identificado (alguém ficou de fazer algo). Cada tarefa contém:
+4. **tasks**: uma lista de tarefas candidatas no estilo 5W2H. Não invente dados. Cada tarefa contém:
    - **title**: título curto e acionável (idealmente começando com um verbo no infinitivo).
    - **description**: descrição detalhada incluindo o responsável e o contexto necessário para executar.
+   - **what**: o que precisa ser feito.
+   - **why**: por que isso precisa ser feito, ou null.
+   - **who**: pessoa citada como responsável, ou null se não estiver claro.
+   - **when**: prazo em ISO 8601 quando houver data clara, ou null.
+   - **where**: contexto/espaço/projeto/reunião citado, ou null.
+   - **how**: instrução ou modo de execução citado, ou null.
+   - **howMuch**: custo, esforço, quantidade ou valor citado, ou null.
+   - **transcriptQuote**: trecho curto da transcrição que justifica a tarefa, ou null.
    - **priority**: "baixa", "media" ou "alta". Use "alta" para itens urgentes/bloqueantes ou explicitamente marcados como prioritários; "baixa" para itens secundários; "media" no resto.
    - **dueAt**: prazo em formato ISO 8601 (ex: "2026-05-15T00:00:00.000Z") quando houver data clara na conversa, ou null caso contrário. Não invente datas.
 
@@ -79,6 +95,14 @@ const RECORD_SUMMARY_TOOL: Anthropic.Tool = {
           properties: {
             title: { type: "string" },
             description: { type: "string" },
+            what: { type: "string" },
+            why: { type: ["string", "null"] },
+            who: { type: ["string", "null"] },
+            when: { type: ["string", "null"] },
+            where: { type: ["string", "null"] },
+            how: { type: ["string", "null"] },
+            howMuch: { type: ["string", "null"] },
+            transcriptQuote: { type: ["string", "null"] },
             priority: { type: "string", enum: ["baixa", "media", "alta"] },
             dueAt: {
               type: ["string", "null"],
@@ -86,7 +110,20 @@ const RECORD_SUMMARY_TOOL: Anthropic.Tool = {
                 "Prazo em ISO 8601 (ex.: 2026-05-15T00:00:00.000Z) ou null.",
             },
           },
-          required: ["title", "description", "priority", "dueAt"],
+          required: [
+            "title",
+            "description",
+            "what",
+            "why",
+            "who",
+            "when",
+            "where",
+            "how",
+            "howMuch",
+            "transcriptQuote",
+            "priority",
+            "dueAt",
+          ],
         },
       },
     },
@@ -167,6 +204,9 @@ export async function summarizeAndExtract(
           const title = typeof obj.title === "string" ? obj.title : "";
           const description =
             typeof obj.description === "string" ? obj.description : "";
+          const what = typeof obj.what === "string" ? obj.what : title;
+          const nullable = (value: unknown) =>
+            typeof value === "string" && value.trim().length > 0 ? value : null;
           const priorityRaw =
             typeof obj.priority === "string" ? obj.priority : "media";
           const priority: ExtractedTask["priority"] =
@@ -180,7 +220,20 @@ export async function summarizeAndExtract(
               ? obj.dueAt
               : null;
           if (!title) return null;
-          return { title, description, priority, dueAt };
+          return {
+            title,
+            description,
+            what,
+            why: nullable(obj.why),
+            who: nullable(obj.who),
+            when: nullable(obj.when) ?? dueAt,
+            where: nullable(obj.where),
+            how: nullable(obj.how),
+            howMuch: nullable(obj.howMuch),
+            transcriptQuote: nullable(obj.transcriptQuote),
+            priority,
+            dueAt,
+          };
         })
         .filter((t): t is ExtractedTask => t !== null)
     : [];

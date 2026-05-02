@@ -346,6 +346,7 @@ model Summary {
   abstract        String   @db.Text
   decisions       String[]
   nextSteps       String[]
+  suggestedTasks  Json?
   llmModel        String   @default("claude-sonnet-4-6")
   tokensInput     Int?
   tokensOutput    Int?

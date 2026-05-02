@@ -44,6 +44,7 @@ export function RecorderClient({
   const rafRef = useRef<number>(0);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const mimeTypeRef = useRef<string>("audio/webm");
+  const smoothedBarsRef = useRef<number[]>([]);
 
   // Check MediaRecorder support
   const isSupported =
@@ -74,6 +75,10 @@ export function RecorderClient({
 
     // Calcula RMS por slice (amplitude do som naquele instante).
     const amplitudes: number[] = new Array(totalBars);
+    if (smoothedBarsRef.current.length !== totalBars) {
+      smoothedBarsRef.current = new Array(totalBars).fill(0);
+    }
+
     for (let i = 0; i < totalBars; i++) {
       let sumSq = 0;
       for (let j = 0; j < sliceSize; j++) {
@@ -81,7 +86,12 @@ export function RecorderClient({
         sumSq += sample * sample;
       }
       const rms = Math.sqrt(sumSq / sliceSize);
-      amplitudes[i] = Math.min(1, rms * 2.5);
+      const target = Math.min(1, rms * 2.2);
+      const previous = smoothedBarsRef.current[i] ?? 0;
+      const smoothing = target > previous ? 0.28 : 0.14;
+      const next = previous + (target - previous) * smoothing;
+      smoothedBarsRef.current[i] = next;
+      amplitudes[i] = next;
     }
 
     // Espelha em volta do centro: barra `i` usa max entre amplitude `i` e seu
@@ -167,6 +177,7 @@ export function RecorderClient({
 
       recorder.onstart = () => {
         startedAtRef.current = Date.now();
+        smoothedBarsRef.current = [];
         setElapsed(0);
         setPhase("recording");
 

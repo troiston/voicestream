@@ -3,6 +3,7 @@ export const APP_NAV = [
   { href: "/onboarding" as const, label: "Primeiros passos" },
   { href: "/spaces" as const, label: "Espaços" },
   { href: "/capture" as const, label: "Captura" },
+  { href: "/calendar" as const, label: "Calendário" },
   { href: "/tasks" as const, label: "Tarefas" },
   { href: "/integrations" as const, label: "Integrações" },
   { href: "/billing" as const, label: "Faturamento" },
