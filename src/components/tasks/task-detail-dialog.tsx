@@ -9,7 +9,6 @@ import {
   CheckSquare,
   MessageSquare,
   Paperclip,
-  Plus,
   Trash2,
   X,
 } from "lucide-react";
@@ -162,7 +161,7 @@ function InlineTitle({
         if (e.key === "Enter") commit();
         if (e.key === "Escape") { setDraft(value); setEditing(false); }
       }}
-      className="text-lg font-bold w-full bg-transparent border-b border-primary outline-none"
+      className="w-full rounded-[var(--radius-sm)] border border-transparent bg-transparent px-1 py-0.5 text-2xl font-semibold leading-tight outline-none transition-colors focus:border-ring focus:ring-2 focus:ring-ring/40"
       autoFocus
       aria-label="Editar título da tarefa"
     />
@@ -170,7 +169,7 @@ function InlineTitle({
     <button
       type="button"
       onClick={() => { setDraft(value); setEditing(true); }}
-      className="text-lg font-bold text-left w-full hover:opacity-80 transition-opacity"
+      className="w-full rounded-[var(--radius-sm)] px-1 py-0.5 text-left text-2xl font-semibold leading-tight text-foreground transition-colors hover:bg-surface-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
       aria-label={`Título: ${value}. Clique para editar.`}
     >
       {value}
@@ -686,15 +685,16 @@ export function TaskDetailDialog({
   >("detalhes");
   const [isPending, startTransition] = useTransition();
 
-  // Sync state when task id changes (different task opened)
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+  // Sync state when a different task is opened or server data refreshes.
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     setTitle(task.title);
     setDueDate(task.dueAt ? task.dueAt.split("T")[0] : "");
     setArchived(!!task.archivedAt);
     setTaskLabels(task.labels.map((tl) => tl.label));
     setActiveSection("detalhes");
-  }, [task.id]); // intentionally keyed on id only to avoid infinite loops
+  }, [task.archivedAt, task.dueAt, task.id, task.labels, task.title]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const handleTitleChange = (newTitle: string) => {
     setTitle(newTitle);
@@ -731,20 +731,21 @@ export function TaskDetailDialog({
     }}>
       <DialogContent
         className={cn(
-          "max-w-5xl w-full p-0 overflow-hidden",
+          "w-[min(72rem,calc(100vw-2rem))] !max-w-[min(72rem,calc(100vw-2rem))] sm:!max-w-[min(72rem,calc(100vw-2rem))]",
+          "gap-0 overflow-hidden p-0 shadow-2xl",
           "max-h-[90vh] flex flex-col",
           "md:max-h-[85vh]",
         )}
         aria-labelledby="task-detail-title"
       >
         {/* Header */}
-        <DialogHeader className="shrink-0 border-b border-border/40 px-6 pt-5 pb-4">
+        <DialogHeader className="shrink-0 border-b border-border/40 bg-surface-1/70 px-6 pb-4 pt-5 pr-14">
           <DialogTitle id="task-detail-title" className="sr-only">
             {title}
           </DialogTitle>
           <div className="space-y-3">
             <div className="flex flex-wrap items-start justify-between gap-3">
-              <div className="min-w-0 flex-1 space-y-2">
+              <div className="min-w-0 flex-1 space-y-3">
                 <InlineTitle key={task.id} value={title} onChange={handleTitleChange} />
                 <div className="flex flex-wrap items-center gap-2">
                   <Badge variant={STATUS_CONFIG[task.status].variant}>
@@ -791,7 +792,7 @@ export function TaskDetailDialog({
 
         <div className="flex flex-1 min-h-0 flex-col">
           <div
-            className="flex flex-wrap gap-1 border-b border-border/40 px-6 py-3"
+            className="flex flex-wrap gap-1 border-b border-border/40 bg-background px-6 py-3"
             role="tablist"
             aria-label="Seções da tarefa"
           >
@@ -813,10 +814,10 @@ export function TaskDetailDialog({
                   aria-controls={`task-detail-panel-${id}`}
                   onClick={() => setActiveSection(id as typeof activeSection)}
                   className={cn(
-                    "rounded-md px-3 py-2 text-sm font-medium transition-colors",
+                    "rounded-[var(--radius-md)] px-3 py-2 text-sm font-medium transition-colors",
                     active
-                      ? "bg-surface-1 text-foreground ring-1 ring-border"
-                      : "text-muted-foreground hover:text-foreground",
+                      ? "bg-foreground text-background shadow-sm"
+                      : "text-muted-foreground hover:bg-surface-1 hover:text-foreground",
                   )}
                 >
                   {label}
@@ -825,7 +826,7 @@ export function TaskDetailDialog({
             })}
           </div>
 
-          <div className="min-h-0 flex-1 overflow-y-auto px-6 py-4">
+          <div className="min-h-0 flex-1 overflow-y-auto bg-background px-6 py-5">
             <section
               id="task-detail-panel-detalhes"
               role="tabpanel"
@@ -842,7 +843,7 @@ export function TaskDetailDialog({
                   />
                 </div>
 
-                <aside className="space-y-4 rounded-[var(--radius-lg)] border border-border/60 bg-surface-1 p-4">
+                <aside className="space-y-4 rounded-[var(--radius-md)] border border-border/60 bg-surface-1 p-4">
                   <div className="space-y-3">
                     <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
                       <Calendar className="size-4" />
@@ -960,7 +961,7 @@ export function TaskDetailDialog({
               hidden={activeSection !== "origem"}
               className="space-y-4"
             >
-              <div className="space-y-2 rounded-[var(--radius-lg)] border border-border/60 bg-surface-1 p-4">
+              <div className="space-y-2 rounded-[var(--radius-md)] border border-border/60 bg-surface-1 p-4">
                 <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
                   <MessageSquare className="size-4" />
                   Gravação de origem
@@ -983,7 +984,7 @@ export function TaskDetailDialog({
                 )}
               </div>
 
-              <div className="space-y-2 rounded-[var(--radius-lg)] border border-border/60 bg-surface-1 p-4">
+              <div className="space-y-2 rounded-[var(--radius-md)] border border-border/60 bg-surface-1 p-4">
                 <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                   Trecho / descrição
                 </p>

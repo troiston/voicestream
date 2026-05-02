@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 
 import { requireSession } from "@/features/auth/guards";
 import { db } from "@/lib/db";
+import { Prisma } from "@/generated/prisma/client";
 import { SpaceDetailView } from "@/components/app/space-detail-view";
 import type {
   RecordingDetailItem,
@@ -18,7 +19,42 @@ import {
 } from "@/lib/crypto/transcripts";
 import { getRecordingStatusView } from "@/lib/recordings/presentation";
 
-type PageProps = { params: Promise<{ id: string }> };
+type PageProps = {
+  params: Promise<{ id: string }>;
+  searchParams?: Promise<{ recording?: string }>;
+};
+
+async function loadSuggestedTasks(recordingIds: string[]) {
+  if (recordingIds.length === 0) return new Map<string, RecordingDetailItem["suggestedTasks"]>();
+
+  const columnRows = await db.$queryRaw<Array<{ exists: boolean }>>`
+    select exists (
+      select 1
+      from information_schema.columns
+      where table_schema = 'public'
+        and table_name = 'summary'
+        and column_name = 'suggestedTasks'
+    ) as "exists"
+  `;
+  if (columnRows[0]?.exists !== true) {
+    return new Map<string, RecordingDetailItem["suggestedTasks"]>();
+  }
+
+  const rows = await db.$queryRaw<Array<{ recordingId: string; suggestedTasks: unknown }>>`
+    select "recordingId", "suggestedTasks"
+    from "summary"
+    where "recordingId" in (${Prisma.join(recordingIds)})
+  `;
+
+  return new Map(
+    rows.map((row) => [
+      row.recordingId,
+      Array.isArray(row.suggestedTasks)
+        ? (row.suggestedTasks as RecordingDetailItem["suggestedTasks"])
+        : [],
+    ]),
+  );
+}
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { id } = await params;
@@ -33,8 +69,9 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   };
 }
 
-export default async function SpaceDetailPage({ params }: PageProps) {
+export default async function SpaceDetailPage({ params, searchParams }: PageProps) {
   const { id } = await params;
+  const highlightedRecordingId = (await searchParams)?.recording;
   const session = await requireSession();
 
   // Check access: user is owner OR active member
@@ -44,7 +81,6 @@ export default async function SpaceDetailPage({ params }: PageProps) {
       where: { spaceId_userId: { spaceId: id, userId: session.userId } },
     }),
   ]);
-
   if (!space || (space.ownerId !== session.userId && (!isMember || isMember.status !== "active"))) {
     notFound();
   }
@@ -78,8 +114,7 @@ export default async function SpaceDetailPage({ params }: PageProps) {
             abstract: true,
             decisions: true,
             nextSteps: true,
-            suggestedTasks: true,
-          } as any,
+          },
         },
       },
       orderBy: { capturedAt: "desc" },
@@ -103,6 +138,7 @@ export default async function SpaceDetailPage({ params }: PageProps) {
       orderBy: { invitedAt: "asc" },
     }),
   ]);
+  const suggestedTasksByRecordingId = await loadSuggestedTasks(recordings.map((r) => r.id));
 
   const members: SpaceMemberOption[] = [
     { id: space.ownerId, name: "Dono do espaço" },
@@ -132,12 +168,9 @@ export default async function SpaceDetailPage({ params }: PageProps) {
           abstract: string;
           decisions: string[];
           nextSteps: string[];
-          suggestedTasks?: unknown;
         }
       | null;
-    const suggestedTasks = Array.isArray(summary?.suggestedTasks)
-      ? summary.suggestedTasks
-      : [];
+    const suggestedTasks = suggestedTasksByRecordingId.get(r.id) ?? [];
 
     return {
       id: r.id,
@@ -164,7 +197,7 @@ export default async function SpaceDetailPage({ params }: PageProps) {
             text: item.text,
           };
         }) ?? [],
-      suggestedTasks: suggestedTasks as RecordingDetailItem["suggestedTasks"],
+      suggestedTasks,
     };
   });
 
@@ -209,6 +242,7 @@ export default async function SpaceDetailPage({ params }: PageProps) {
       initialFeed={feed}
       recordings={detailedRecordings}
       members={members}
+      highlightedRecordingId={highlightedRecordingId}
       initialTasks={initialTasks}
       initialColumns={initialColumns}
       userId={session.userId}

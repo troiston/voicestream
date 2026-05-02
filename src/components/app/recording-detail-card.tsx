@@ -17,6 +17,7 @@ import { cn } from "@/lib/utils";
 type Props = {
   recording: RecordingDetailItem;
   members: SpaceMemberOption[];
+  initialOpen?: boolean;
 };
 
 function formatDuration(sec: number): string {
@@ -39,8 +40,8 @@ function assigneeLabel(task: RecordingSuggestedTaskItem): string {
   return "Responsável pendente";
 }
 
-export function RecordingDetailCard({ recording, members }: Props) {
-  const [open, setOpen] = useState(false);
+export function RecordingDetailCard({ recording, members, initialOpen = false }: Props) {
+  const [open, setOpen] = useState(initialOpen);
   const [selected, setSelected] = useState<Set<string>>(
     () => new Set(recording.suggestedTasks.filter((task) => task.canCreate).map((task) => task.id)),
   );

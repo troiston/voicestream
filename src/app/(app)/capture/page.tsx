@@ -64,6 +64,8 @@ export default async function CapturePage() {
       capturedAt: true,
       durationSec: true,
       status: true,
+      errorMessage: true,
+      spaceId: true,
       space: { select: { name: true } },
     },
   });
@@ -74,6 +76,8 @@ export default async function CapturePage() {
     capturedAt: r.capturedAt.toISOString(),
     durationSec: r.durationSec,
     status: r.status,
+    errorMessage: r.errorMessage,
+    spaceId: r.spaceId,
     spaceName: r.space.name,
   }));
 

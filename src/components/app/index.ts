@@ -5,4 +5,5 @@ export { SpacesPageClient } from "./spaces-page-client";
 export { CreateSpaceForm } from "./create-space-form";
 export { SpaceDetailView } from "./space-detail-view";
 export { CaptureWorkspace } from "./capture-workspace";
-export type { CaptureSpace, CaptureHistoryItem, CaptureWorkspaceProps } from "./capture-workspace";
+export type { CaptureSpace, CaptureWorkspaceProps } from "./capture-workspace";
+export type { CaptureHistoryItem } from "@/types/domain";

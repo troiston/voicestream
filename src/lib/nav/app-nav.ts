@@ -1,6 +1,5 @@
 export const APP_NAV = [
   { href: "/dashboard" as const, label: "Painel" },
-  { href: "/onboarding" as const, label: "Primeiros passos" },
   { href: "/spaces" as const, label: "Espaços" },
   { href: "/capture" as const, label: "Captura" },
   { href: "/calendar" as const, label: "Calendário" },

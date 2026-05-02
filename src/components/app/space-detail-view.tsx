@@ -25,6 +25,7 @@ export interface SpaceDetailViewProps {
   initialFeed: SpaceFeedItem[];
   recordings: RecordingDetailItem[];
   members: SpaceMemberOption[];
+  highlightedRecordingId?: string;
   initialTasks: TaskListItem[];
   initialColumns: TaskColumnItem[];
   userId?: string;
@@ -47,6 +48,7 @@ export function SpaceDetailView({
   initialFeed,
   recordings,
   members,
+  highlightedRecordingId,
   initialTasks,
   initialColumns,
   userId,
@@ -110,7 +112,11 @@ export function SpaceDetailView({
                     delay: reduce ? 0 : Math.min(i * 0.03, 0.24),
                   }}
                 >
-                  <RecordingDetailCard recording={recording} members={members} />
+                  <RecordingDetailCard
+                    recording={recording}
+                    members={members}
+                    initialOpen={recording.id === highlightedRecordingId}
+                  />
                 </motion.li>
               ))
             ) : (

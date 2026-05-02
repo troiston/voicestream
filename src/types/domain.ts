@@ -77,6 +77,17 @@ export type RecordingDetailItem = {
   suggestedTasks: RecordingSuggestedTaskItem[];
 };
 
+export type CaptureHistoryItem = {
+  id: string;
+  title: string | null;
+  capturedAt: string;
+  durationSec: number;
+  status: string;
+  errorMessage: string | null;
+  spaceId: string;
+  spaceName: string;
+};
+
 export type TaskListItem = {
   id: string;
   title: string;

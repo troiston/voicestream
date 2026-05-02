@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { User, SlidersHorizontal, Mic, Bell, Monitor, Shield } from "lucide-react";
+import Link from "next/link";
+import { User, SlidersHorizontal, Mic, Bell, Monitor, Shield, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 import { DevicesSection } from "./devices-section";
@@ -12,6 +13,7 @@ import { SecuritySection } from "./security-section";
 import { VoiceSection } from "./voice-section";
 
 const SECTIONS = [
+  { id: "primeiros-passos", label: "Primeiros passos", icon: Sparkles },
   { id: "perfil", label: "Perfil", icon: User },
   { id: "preferencias", label: "Preferências", icon: SlidersHorizontal },
   { id: "voz", label: "Voz", icon: Mic },
@@ -136,6 +138,23 @@ export function SettingsPageView({ twoFactorEnabled = false, connectedProviders 
 
         {/* Seções */}
         <div className="space-y-6">
+          <section id="primeiros-passos" className="rounded-[var(--radius-lg)] border border-border/60 bg-surface-1 p-5">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h2 className="text-base font-semibold text-foreground">Primeiros passos</h2>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Reabra a configuração inicial de privacidade, voz e integrações quando precisar revisar a experiência.
+                </p>
+              </div>
+              <Link
+                href="/onboarding"
+                className="inline-flex h-9 items-center justify-center rounded-[var(--radius-md)] border border-border bg-background px-3 text-sm font-medium text-foreground transition-colors hover:bg-surface-2"
+              >
+                Abrir configuração
+              </Link>
+            </div>
+          </section>
+
           <section id="perfil">
             {user && <ProfileSection user={user} />}
           </section>

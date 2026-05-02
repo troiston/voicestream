@@ -20,6 +20,7 @@ export type ExtractedTask = {
 };
 
 export type SummarizationResult = {
+  title: string;
   abstract: string;
   decisions: string[];
   nextSteps: string[];
@@ -39,13 +40,15 @@ function getClient(): Anthropic {
 
 const SYSTEM_PROMPT = `Você é um assistente especializado em analisar transcrições de reuniões e conversas em português do Brasil (pt-BR). Sua tarefa é processar a transcrição fornecida pelo usuário e extrair, de forma estruturada e fiel ao conteúdo:
 
-1. **abstract**: um resumo curto e objetivo da conversa, com 2 a 4 frases. Capture o tema central, o contexto e o desfecho principal. Não invente informações.
+1. **title**: um título curto para a gravação, em até 8 palavras, descrevendo o tema principal. Não use "Sem título" e não invente contexto que não esteja na transcrição.
 
-2. **decisions**: uma lista de decisões concretas tomadas durante a conversa. Cada item é uma frase clara e auto-contida descrevendo o que foi decidido. Se não houver decisões explícitas, retorne um array vazio.
+2. **abstract**: um resumo curto e objetivo da conversa, com 2 a 4 frases. Capture o tema central, o contexto e o desfecho principal. Não invente informações.
 
-3. **nextSteps**: uma lista de próximos passos ou ações combinadas que NÃO possuem um dono/responsável claramente identificado na conversa. Cada item é uma frase descrevendo a ação. Se não houver, retorne array vazio.
+3. **decisions**: uma lista de decisões concretas tomadas durante a conversa. Cada item é uma frase clara e auto-contida descrevendo o que foi decidido. Se não houver decisões explícitas, retorne um array vazio.
 
-4. **tasks**: uma lista de tarefas candidatas no estilo 5W2H. Não invente dados. Cada tarefa contém:
+4. **nextSteps**: uma lista de próximos passos ou ações combinadas que NÃO possuem um dono/responsável claramente identificado na conversa. Cada item é uma frase descrevendo a ação. Se não houver, retorne array vazio.
+
+5. **tasks**: uma lista de tarefas candidatas no estilo 5W2H. Não invente dados. Cada tarefa contém:
    - **title**: título curto e acionável (idealmente começando com um verbo no infinitivo).
    - **description**: descrição detalhada incluindo o responsável e o contexto necessário para executar.
    - **what**: o que precisa ser feito.
@@ -73,6 +76,10 @@ const RECORD_SUMMARY_TOOL: Anthropic.Tool = {
   input_schema: {
     type: "object",
     properties: {
+      title: {
+        type: "string",
+        description: "Título curto para a gravação, até 8 palavras.",
+      },
       abstract: {
         type: "string",
         description: "Resumo curto da conversa (2 a 4 frases) em pt-BR.",
@@ -127,7 +134,7 @@ const RECORD_SUMMARY_TOOL: Anthropic.Tool = {
         },
       },
     },
-    required: ["abstract", "decisions", "nextSteps", "tasks"],
+    required: ["title", "abstract", "decisions", "nextSteps", "tasks"],
   },
 };
 
@@ -184,12 +191,17 @@ export async function summarizeAndExtract(
 
   const input = toolUse.input as {
     abstract?: unknown;
+    title?: unknown;
     decisions?: unknown;
     nextSteps?: unknown;
     tasks?: unknown;
   };
 
   const abstract = typeof input.abstract === "string" ? input.abstract : "";
+  const title =
+    typeof input.title === "string" && input.title.trim().length > 0
+      ? input.title.trim().slice(0, 120)
+      : "Resumo da gravação";
   const decisions = Array.isArray(input.decisions)
     ? (input.decisions.filter((d) => typeof d === "string") as string[])
     : [];
@@ -239,6 +251,7 @@ export async function summarizeAndExtract(
     : [];
 
   return {
+    title,
     abstract,
     decisions,
     nextSteps,

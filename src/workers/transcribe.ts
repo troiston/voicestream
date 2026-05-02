@@ -20,6 +20,7 @@ type SummaryCreateWithSuggestedTasks = {
     data: {
       recordingId: string;
       transcriptionId: string;
+      title: string;
       abstract: string;
       decisions: string[];
       nextSteps: string[];
@@ -30,6 +31,28 @@ type SummaryCreateWithSuggestedTasks = {
     };
   }): Promise<unknown>;
 };
+
+type QueryableTransaction = {
+  $queryRaw<T = unknown>(query: TemplateStringsArray, ...values: unknown[]): Promise<T>;
+};
+
+async function hasSummarySuggestedTasksColumn(tx: QueryableTransaction): Promise<boolean> {
+  const rows = await tx.$queryRaw<Array<{ exists: boolean }>>`
+    select exists (
+      select 1
+      from information_schema.columns
+      where table_schema = 'public'
+        and table_name = 'summary'
+        and column_name = 'suggestedTasks'
+    ) as "exists"
+  `;
+  return rows[0]?.exists === true;
+}
+
+function titleFromSummary(title: string, abstract: string): string {
+  const candidate = title.trim() || abstract.split(/[.!?]/)[0]?.trim() || "Gravação resumida";
+  return candidate.length > 90 ? `${candidate.slice(0, 87).trim()}...` : candidate;
+}
 
 const worker = new Worker<TranscribeJobData>(QUEUE_NAME, async (job: Job<TranscribeJobData>) => {
   const { recordingId } = job.data;
@@ -143,21 +166,38 @@ const worker = new Worker<TranscribeJobData>(QUEUE_NAME, async (job: Job<Transcr
         { spaceName: space?.name ?? "VoiceStream", knownMembers },
       );
 
-      await (tx.summary as unknown as SummaryCreateWithSuggestedTasks).create({
+      const summaryData = {
+        recordingId,
+        transcriptionId: trans.id,
+        title: summary.title,
+        abstract: summary.abstract,
+        decisions: summary.decisions,
+        nextSteps: summary.nextSteps,
+        llmModel: summary.model,
+        tokensInput: summary.tokensInput,
+        tokensOutput: summary.tokensOutput,
+      };
+
+      if (await hasSummarySuggestedTasksColumn(tx)) {
+        await (tx.summary as unknown as SummaryCreateWithSuggestedTasks).create({
+          data: {
+            ...summaryData,
+            suggestedTasks,
+          },
+        });
+      } else {
+        await tx.summary.create({ data: summaryData });
+      }
+
+      await tx.recording.update({
+        where: { id: recordingId },
         data: {
-          recordingId,
-          transcriptionId: trans.id,
-          abstract: summary.abstract,
-          decisions: summary.decisions,
-          nextSteps: summary.nextSteps,
-          suggestedTasks,
-          llmModel: summary.model,
-          tokensInput: summary.tokensInput,
-          tokensOutput: summary.tokensOutput,
+          status: "summarized",
+          title: recording.title?.trim()
+            ? recording.title
+            : titleFromSummary(summary.title, summary.abstract),
         },
       });
-
-      await tx.recording.update({ where: { id: recordingId }, data: { status: "summarized" } });
     });
 
     // 6) Track usage (best-effort)

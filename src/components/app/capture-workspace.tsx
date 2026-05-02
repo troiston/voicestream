@@ -1,24 +1,17 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 import { RecorderClient } from "@/components/capture/recorder-client";
 import { getRecordingStatusView } from "@/lib/recordings/presentation";
+import type { CaptureHistoryItem } from "@/types/domain";
 
 export interface CaptureSpace {
   id: string;
   name: string;
   kind: string;
-}
-
-export interface CaptureHistoryItem {
-  id: string;
-  title: string | null;
-  capturedAt: string;
-  durationSec: number;
-  status: string;
-  spaceName: string;
 }
 
 export interface CaptureWorkspaceProps {
@@ -51,7 +44,7 @@ export function CaptureWorkspace({ spaces, history }: CaptureWorkspaceProps) {
 
   const selectedSpace = spaces.find((s) => s.id === selectedSpaceId) ?? spaces[0];
 
-  function handleCompleted(_recordingId: string) {
+  function handleCompleted() {
     router.refresh();
   }
 
@@ -123,19 +116,35 @@ export function CaptureWorkspace({ spaces, history }: CaptureWorkspaceProps) {
               return (
                 <li
                   key={item.id}
-                  className="rounded-[var(--radius-lg)] border border-border/60 bg-surface-1 px-4 py-3 mb-2 last:mb-0 hover:border-brand/20 hover:bg-surface-2/50 transition-colors"
+                  className="mb-2 rounded-[var(--radius-lg)] border border-border/60 bg-surface-1 px-4 py-3 transition-colors last:mb-0 hover:border-brand/20 hover:bg-surface-2/50"
                 >
-                  <p className="text-sm font-medium leading-snug text-foreground">
-                    {item.title ?? "Sem título"}
-                  </p>
+                  <Link
+                    href={`/spaces/${item.spaceId}?recording=${item.id}`}
+                    className="block text-sm font-medium leading-snug text-foreground hover:text-brand"
+                  >
+                    {item.title ?? "Título em processamento"}
+                  </Link>
                   <p className="mt-1 text-xs text-muted-foreground">
                     {item.spaceName} · {relativeTime(item.capturedAt)} · {formatDuration(item.durationSec)}
                   </p>
-                  <span
-                    className={`mt-1.5 inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold ${status.className}`}
-                  >
-                    {status.label}
-                  </span>
+                  <div className="mt-1.5 flex flex-wrap items-center gap-2">
+                    <span
+                      className={`inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold ${status.className}`}
+                    >
+                      {status.label}
+                    </span>
+                    <Link
+                      href={`/spaces/${item.spaceId}?recording=${item.id}`}
+                      className="text-[11px] font-medium text-brand hover:underline"
+                    >
+                      Ver transcrição
+                    </Link>
+                  </div>
+                  {item.status === "failed" && item.errorMessage && (
+                    <p className="mt-2 rounded-[var(--radius-md)] border border-danger/20 bg-danger/10 px-2 py-1.5 text-xs leading-relaxed text-danger">
+                      {item.errorMessage}
+                    </p>
+                  )}
                 </li>
               );
             })
