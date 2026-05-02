@@ -18,6 +18,8 @@ const s3Client = new S3Client({
     secretAccessKey: env.S3_SECRET_KEY,
   },
   forcePathStyle: env.S3_FORCE_PATH_STYLE,
+  requestChecksumCalculation: "WHEN_REQUIRED",
+  responseChecksumValidation: "WHEN_REQUIRED",
 });
 
 // Public S3 client used only to mint presigned URLs that the browser will hit.
