@@ -22,6 +22,8 @@ const s3Client = new S3Client({
 
 // Public S3 client used only to mint presigned URLs that the browser will hit.
 // Falls back to the internal endpoint in dev where there is no public hostname.
+// requestChecksumCalculation/responseChecksumValidation: SeaweedFS rejeita o
+// placeholder CRC32 que o SDK v3 inclui por padrão na URL assinada.
 const s3PublicClient = new S3Client({
   endpoint: env.S3_PUBLIC_ENDPOINT ?? env.S3_ENDPOINT,
   region: env.S3_REGION,
@@ -30,6 +32,8 @@ const s3PublicClient = new S3Client({
     secretAccessKey: env.S3_SECRET_KEY,
   },
   forcePathStyle: env.S3_FORCE_PATH_STYLE,
+  requestChecksumCalculation: "WHEN_REQUIRED",
+  responseChecksumValidation: "WHEN_REQUIRED",
 });
 
 export type PresignUrlOptions = {
