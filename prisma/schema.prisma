@@ -45,6 +45,7 @@ model User {
   integrations     Integration[]
   comments         Comment[]      @relation("CommentAuthor")
   taskSuggestionsAssigned TaskSuggestion[] @relation("TaskSuggestionAssignee")
+  calendarEvents   CalendarEvent[]
 
   @@index([isDemo])
   @@map("user")
@@ -218,6 +219,7 @@ model Space {
   taskColumns TaskColumn[]
   labels      Label[]
   taskSuggestions TaskSuggestion[] @relation("SpaceTaskSuggestions")
+  calendarEvents  CalendarEvent[]  @relation("SpaceCalendarEvents")
 
   @@unique([ownerId, name])
   @@index([ownerId])
@@ -304,7 +306,8 @@ model Recording {
   transcription Transcription?
   summary       Summary?
   tasks         Task[]
-  suggestions   TaskSuggestion[]
+  suggestions    TaskSuggestion[]
+  calendarEvents CalendarEvent[]  @relation("RecordingCalendarEvents")
 
   @@index([spaceId, capturedAt(sort: Desc)])
   @@index([userId])
@@ -551,4 +554,28 @@ model TaskSuggestion {
   @@index([recordingId])
   @@index([status])
   @@map("task_suggestion")
+}
+
+model CalendarEvent {
+  id          String    @id @default(cuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  source      String    // "google" | "internal"
+  externalId  String?
+  title       String
+  description String?   @db.Text
+  startsAt    DateTime
+  endsAt      DateTime
+  htmlLink    String?
+  spaceId     String?
+  space       Space?    @relation("SpaceCalendarEvents", fields: [spaceId], references: [id], onDelete: SetNull)
+  recordingId String?
+  recording   Recording? @relation("RecordingCalendarEvents", fields: [recordingId], references: [id], onDelete: SetNull)
+  syncedAt    DateTime?
+  createdAt   DateTime  @default(now())
+
+  @@unique([userId, source, externalId])
+  @@index([userId, startsAt])
+  @@index([spaceId, startsAt])
+  @@map("calendar_event")
 }

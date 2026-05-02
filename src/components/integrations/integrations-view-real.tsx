@@ -1,8 +1,9 @@
 "use client";
 
 import { motion, useReducedMotion } from "framer-motion";
-import { Calendar, CheckCircle2 } from "lucide-react";
+import { Calendar, CheckCircle2, RefreshCw } from "lucide-react";
 import Link from "next/link";
+import { useState } from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -96,6 +97,31 @@ export function IntegrationsViewReal({ statusByProvider }: IntegrationsViewRealP
   const googleStatus = statusByProvider[googleCalendar.key] ?? "disconnected";
   const isGoogleConnected = googleStatus === "connected";
 
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [syncMsg, setSyncMsg] = useState<string | null>(null);
+
+  async function handleSync() {
+    setIsSyncing(true);
+    setSyncMsg(null);
+    try {
+      const res = await fetch("/api/integrations/google/calendar/sync", {
+        method: "POST",
+      });
+      if (res.ok) {
+        const data = (await res.json()) as { synced?: number };
+        setSyncMsg(
+          `${data.synced ?? 0} evento(s) sincronizado(s) com sucesso.`,
+        );
+      } else {
+        setSyncMsg("Falha ao sincronizar. Tente novamente.");
+      }
+    } catch {
+      setSyncMsg("Erro de conexão ao sincronizar.");
+    } finally {
+      setIsSyncing(false);
+    }
+  }
+
   // Benefits for Google Calendar hero
   const benefits = [
     "Crie tarefas a partir de eventos automaticamente",
@@ -160,17 +186,37 @@ export function IntegrationsViewReal({ statusByProvider }: IntegrationsViewRealP
         </div>
 
         {/* CTA */}
-        <Link
-          href="/api/integrations/google/connect"
-          className={cn(
-            "inline-flex min-h-11 items-center justify-center rounded-[var(--radius-md)] px-6 py-2 text-sm font-medium transition-colors",
-            isGoogleConnected
-              ? "btn-gradient bg-brand text-brand-foreground hover:bg-brand/90"
-              : "border border-border bg-surface-1 text-foreground hover:bg-surface-2",
+        <div className="flex flex-wrap items-center gap-3">
+          <Link
+            href="/api/integrations/google/connect"
+            className={cn(
+              "inline-flex min-h-11 items-center justify-center rounded-[var(--radius-md)] px-6 py-2 text-sm font-medium transition-colors",
+              isGoogleConnected
+                ? "btn-gradient bg-brand text-brand-foreground hover:bg-brand/90"
+                : "border border-border bg-surface-1 text-foreground hover:bg-surface-2",
+            )}
+          >
+            {isGoogleConnected ? "Gerenciar conexão" : "Conectar agora"}
+          </Link>
+
+          {isGoogleConnected && (
+            <button
+              type="button"
+              onClick={handleSync}
+              disabled={isSyncing}
+              className="inline-flex min-h-11 items-center gap-2 rounded-[var(--radius-md)] border border-border bg-surface-1 px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-surface-2 disabled:opacity-50"
+            >
+              <RefreshCw
+                className={cn("h-4 w-4", isSyncing && "animate-spin")}
+              />
+              {isSyncing ? "Sincronizando…" : "Sincronizar agora"}
+            </button>
           )}
-        >
-          {isGoogleConnected ? "Gerenciar conexão" : "Conectar agora"}
-        </Link>
+        </div>
+
+        {syncMsg && (
+          <p className="mt-3 text-sm text-muted-foreground">{syncMsg}</p>
+        )}
       </motion.section>
 
       {/* ===== How It Works ===== */}
