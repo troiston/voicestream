@@ -12,6 +12,7 @@ import { transcribeFromStorageKey } from "@/lib/transcription/deepgram";
 import { summarizeAndExtract } from "@/lib/llm/anthropic";
 import { encryptTranscriptText } from "@/lib/crypto/envelope";
 import { normalizeSuggestedTasks } from "@/lib/recordings/suggested-tasks";
+import { extractTaskSuggestions } from "@/lib/llm/extract-tasks";
 
 const QUEUE_NAME = "transcribe";
 
@@ -199,6 +200,71 @@ const worker = new Worker<TranscribeJobData>(QUEUE_NAME, async (job: Job<Transcr
         },
       });
     });
+
+    // 5b) Extract TaskSuggestion rows (5W2H) — outside main transaction, best-effort
+    try {
+      const rawSuggestions = await extractTaskSuggestions(t.text);
+      if (rawSuggestions.length > 0) {
+        const members = await db.spaceMember.findMany({
+          where: { spaceId: recording.spaceId, status: "active" },
+          include: { user: { select: { id: true, name: true } } },
+        });
+
+        function normalizeText(s: string) {
+          return s.normalize("NFD").replace(/[̀-ͯ]/g, "").trim().toLowerCase();
+        }
+
+        const suggestionData = rawSuggestions.map((s) => {
+          let assigneeId: string | null = null;
+          let assigneeMatch = "pending";
+
+          if (s.who) {
+            const whoNorm = normalizeText(s.who);
+            const matched = members.filter((m) =>
+              m.user.name && normalizeText(m.user.name).includes(whoNorm)
+            );
+            if (matched.length === 1) {
+              assigneeId = matched[0].user.id;
+              assigneeMatch = "matched";
+            } else if (matched.length === 0) {
+              assigneeMatch = "not_found";
+            } else {
+              assigneeMatch = "pending"; // 2+ ambiguous
+            }
+          }
+
+          // Try to parse whenDate if whenText looks like a date
+          let whenDate: Date | null = null;
+          if (s.whenText) {
+            const candidate = new Date(s.whenText);
+            if (!isNaN(candidate.getTime())) whenDate = candidate;
+          }
+
+          return {
+            id: `${recordingId}-${Math.random().toString(36).slice(2, 8)}`,
+            recordingId,
+            spaceId: recording.spaceId,
+            what: s.what,
+            why: s.why ?? null,
+            who: s.who ?? null,
+            assigneeId,
+            assigneeMatch,
+            whenText: s.whenText ?? null,
+            whenDate,
+            whereText: s.whereText ?? null,
+            how: s.how ?? null,
+            howMuch: s.howMuch ?? null,
+            sourceSnippet: s.sourceSnippet ?? null,
+          };
+        });
+
+        // Idempotência: limpar sugestões anteriores para este recording
+        await db.taskSuggestion.deleteMany({ where: { recordingId } });
+        await db.taskSuggestion.createMany({ data: suggestionData });
+      }
+    } catch (e) {
+      console.warn("[transcribe-worker] extractTaskSuggestions failed (non-fatal)", e);
+    }
 
     // 6) Track usage (best-effort)
     await db.usage.create({

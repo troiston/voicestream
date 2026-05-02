@@ -85,6 +85,17 @@ export async function createTask(input: z.infer<typeof createTaskSchema>) {
     });
 
     revalidate(column.spaceId);
+
+    // Audit log
+    await db.auditLog.create({
+      data: {
+        userId: session.userId,
+        action: "task.create",
+        entityType: "Task",
+        entityId: task.id,
+      },
+    });
+
     return { ok: true as const, task };
   } catch (err) {
     return { ok: false as const, error: err instanceof Error ? err.message : "Erro ao criar tarefa." };
@@ -124,6 +135,17 @@ export async function archiveTask(id: string) {
     const task = await assertTaskAccess(id, session.userId);
     await db.task.update({ where: { id }, data: { archivedAt: new Date() } });
     revalidate(task.spaceId);
+
+    // Audit log
+    await db.auditLog.create({
+      data: {
+        userId: session.userId,
+        action: "task.archive",
+        entityType: "Task",
+        entityId: id,
+      },
+    });
+
     return { ok: true as const };
   } catch (err) {
     return { ok: false as const, error: err instanceof Error ? err.message : "Erro ao arquivar tarefa." };
@@ -542,6 +564,7 @@ export async function getTaskDetail(taskId: string) {
       },
     };
   } catch (err) {
+    console.error("[getTaskDetail]", err);
     return { ok: false as const, error: err instanceof Error ? err.message : "Erro ao buscar tarefa." };
   }
 }

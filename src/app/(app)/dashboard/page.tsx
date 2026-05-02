@@ -1,13 +1,12 @@
 import type { Metadata } from "next"
 import Link from "next/link"
-import { ArrowUpRight, Clock, Mic, CheckSquare, Zap, TrendingUp, Activity, CheckCircle, AlertTriangle } from "lucide-react"
+import { ArrowUpRight, Clock, Mic, CheckSquare, Zap, TrendingUp, TrendingDown, Activity, Folder, Plug } from "lucide-react"
 
 import { Sparkline7d } from "@/components/dashboard/sparkline-7d"
 import { KpiMicroSparkline } from "@/components/dashboard/kpi-micro-sparkline"
 import { RecentSpaces } from "@/components/dashboard/recent-spaces"
 import { OnboardingChecklist } from "@/components/app/onboarding-checklist"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
 import { DASHBOARD_QUICK_ACTIONS } from "@/lib/mocks/dashboard"
 import { cn } from "@/lib/utils"
 import { requireSession } from "@/features/auth/guards"
@@ -15,274 +14,298 @@ import {
   getDashboardKPIs,
   getDashboardMinutes7d,
   getRecentSpaces,
+  getRecentActivity,
+  type ActivityItem,
 } from "@/features/dashboard/actions"
 
 export const metadata: Metadata = {
   title: "Painel",
-  description: "Métricas de transcrição, STT, tarefas e atalhos para Espaços e captura.",
+  description: "Métricas de gravações, tarefas e integrações ativas.",
   robots: { index: false, follow: false },
 }
 
-const KPI_ICONS = [Clock, Mic, CheckSquare, Zap]
-
 const SPARK_LABELS = ["S", "T", "Q", "Q", "S", "S", "D"] as const
 
-function toneClass(tone: "success" | "warning" | "default") {
-  if (tone === "success") return "text-success"
-  if (tone === "warning") return "text-warning"
-  return "text-foreground"
+function deltaClass(delta: number): string {
+  if (delta > 0) return "text-success"
+  if (delta < 0) return "text-destructive"
+  return "text-muted-foreground"
 }
 
-function toneIcon(tone: "success" | "warning" | "default") {
-  if (tone === "success") return CheckCircle
-  if (tone === "warning") return AlertTriangle
-  return Activity
+function deltaLabel(delta: number, prev: number): string {
+  if (prev === 0 && delta === 0) return "—"
+  if (prev === 0) return delta > 0 ? `+${delta} vs. anterior` : "—"
+  const pct = Math.round((delta / prev) * 100)
+  if (pct === 0) return "igual ao período anterior"
+  return `${pct > 0 ? "+" : ""}${pct}% vs. período anterior`
 }
 
-function toneDot(tone: "success" | "warning" | "default") {
-  if (tone === "success") return "bg-success"
-  if (tone === "warning") return "bg-warning"
-  return "bg-muted-foreground"
+function ActivityIcon({ icon }: { icon: ActivityItem["icon"] }) {
+  const cls = "h-4 w-4 shrink-0"
+  switch (icon) {
+    case "mic": return <Mic className={cn(cls, "text-brand")} />
+    case "folder": return <Folder className={cn(cls, "text-amber-500")} />
+    case "check-square": return <CheckSquare className={cn(cls, "text-success")} />
+    case "plug": return <Plug className={cn(cls, "text-purple-500")} />
+    default: return <Activity className={cn(cls, "text-muted-foreground")} />
+  }
 }
 
 export default async function DashboardPage() {
   const session = await requireSession()
 
-  // Fetch user to check onboarding status
   const user = await import("@/lib/db").then(m =>
     m.db.user.findUnique({ where: { id: session.userId } })
   )
   const hasCompletedOnboarding = user?.onboardingCompletedAt !== null
 
-  const [kpis, minutes7dData, recentSpacesList] = await Promise.all([
+  const [kpis, minutes7dData, recentSpacesList, recentActivity] = await Promise.all([
     getDashboardKPIs(session.userId),
     getDashboardMinutes7d(session.userId),
     getRecentSpaces(session.userId),
+    getRecentActivity(session.userId, 8),
   ])
 
-  // Calcula delta para minutos
-  const deltaMinutes = kpis.minutes7d - kpis.minutes7dPrevious
-  const deltaLabel =
-    deltaMinutes === 0
-      ? "—"
-      : deltaMinutes > 0
-        ? `+${Math.round((deltaMinutes / Math.max(kpis.minutes7dPrevious, 1)) * 100)}% vs. período anterior`
-        : `${Math.round((deltaMinutes / Math.max(kpis.minutes7dPrevious, 1)) * 100)}% vs. período anterior`
-  const deltaPositive =
-    kpis.minutes7dPrevious === 0 ? null : deltaMinutes > 0 ? true : deltaMinutes < 0 ? false : null
-
-  // Construir KPIs com valores reais
   const dashboardKPIs = [
     {
-      id: "minutes",
-      title: "Minutos transcritos (7d)",
-      value: kpis.minutes7d.toString(),
-      hint: "Áudio processado via STT",
-      deltaLabel,
-      deltaPositive,
+      id: "recordings",
+      title: "Gravações esta semana",
+      value: kpis.recordingsThisWeek.value.toString(),
+      hint: "Qualquer status",
+      delta: kpis.recordingsThisWeek.delta,
+      deltaLabel: deltaLabel(
+        kpis.recordingsThisWeek.delta,
+        kpis.recordingsThisWeek.value - kpis.recordingsThisWeek.delta,
+      ),
+      Icon: Mic,
     },
     {
-      id: "sessions",
-      title: "Sessões STT",
-      value: kpis.sessions7d.toString(),
-      hint: "Gravações com transcrição em tempo real",
-      deltaLabel: `+${Math.max(0, kpis.sessions7d - Math.floor(kpis.sessions7d * 0.8))}`,
-      deltaPositive: true,
+      id: "minutes",
+      title: "Minutos gravados",
+      value: kpis.minutesRecorded.value.toString(),
+      hint: "Áudio capturado nos últimos 7 dias",
+      delta: kpis.minutesRecorded.delta,
+      deltaLabel: deltaLabel(
+        kpis.minutesRecorded.delta,
+        kpis.minutesRecorded.value - kpis.minutesRecorded.delta,
+      ),
+      Icon: Clock,
     },
     {
       id: "tasks",
-      title: "Tarefas extraídas",
-      value: kpis.tasksTotal.toString(),
-      hint: "Intents → itens no painel",
-      deltaLabel: `${kpis.tasksPending} pendentes revisão`,
-      deltaPositive: null,
+      title: "Tarefas criadas",
+      value: kpis.tasksCreated.value.toString(),
+      hint: "Esta semana nos seus espaços",
+      delta: kpis.tasksCreated.delta,
+      deltaLabel: deltaLabel(
+        kpis.tasksCreated.delta,
+        kpis.tasksCreated.value - kpis.tasksCreated.delta,
+      ),
+      Icon: CheckSquare,
     },
     {
       id: "integrations",
       title: "Integrações ativas",
-      value: kpis.integrationsActive.toString(),
-      hint: "Slack, Linear, Notion…",
-      deltaPositive: false,
+      value: kpis.integrationsActive.value.toString(),
+      hint: "Conectadas à sua conta",
+      delta: 0,
+      deltaLabel: kpis.integrationsActive.value === 0 ? "Nenhuma conectada" : "Conectadas",
+      Icon: Zap,
     },
   ]
 
   const sparklineData = [
-    minutes7dData.values,       // Minutos
-    minutes7dData.values.map(v => Math.max(1, Math.round(v / 5))),  // Sessões aprox
-    minutes7dData.values.map(v => Math.max(0, Math.round(v / 7))),  // Tarefas aprox
-    [kpis.integrationsActive, kpis.integrationsActive, kpis.integrationsActive, kpis.integrationsActive, kpis.integrationsActive, kpis.integrationsActive, kpis.integrationsActive], // Integrações
+    minutes7dData.values.map(v => Math.max(1, Math.round(v / 5))), // Gravações aprox
+    minutes7dData.values,  // Minutos
+    minutes7dData.values.map(v => Math.max(0, Math.round(v / 7))), // Tarefas aprox
+    new Array(7).fill(kpis.integrationsActive.value),
   ]
 
   return (
     <div className="flex gap-6">
-      {/* Main content */}
       <div className="min-w-0 flex-1 space-y-8 max-w-7xl">
-      {/* Page header */}
-      <div className="space-y-1">
-        <h1 className="text-2xl font-bold tracking-tight">Visão geral</h1>
-        <p className="text-sm text-muted-foreground max-w-xl">
-          Resumo das tuas transcrições, tarefas e integrações ativas.
-        </p>
-      </div>
+        {/* Page header */}
+        <div className="space-y-1">
+          <h1 className="text-2xl font-bold tracking-tight">Visão geral</h1>
+          <p className="text-sm text-muted-foreground max-w-xl">
+            Resumo das suas gravações, tarefas e integrações ativas.
+          </p>
+        </div>
 
-      {/* KPIs */}
-      <section aria-labelledby="kpi-heading">
-        <h2 id="kpi-heading" className="sr-only">Indicadores principais</h2>
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          {dashboardKPIs.map((k, idx) => {
-            const Icon = KPI_ICONS[idx] ?? Zap
-            const isFirst = idx === 0
-
-            return (
-              <Card
-                key={k.id}
-                className={cn(
-                  "overflow-hidden transition-colors",
-                  isFirst ? "gradient-border" : "bg-surface-1 border border-border/60"
-                )}
-              >
-                <CardHeader className="pb-2 px-5 pt-5">
-                  <div className="flex items-center justify-between">
-                    <div className={cn(
-                      "flex h-8 w-8 items-center justify-center rounded-[var(--radius-md)]",
-                      isFirst ? "bg-brand/15 text-brand" : "bg-surface-2 text-muted-foreground"
-                    )}>
-                      <Icon className="h-4 w-4" />
-                    </div>
-                    <TrendingUp className={cn(
-                      "h-3.5 w-3.5",
-                      k.deltaPositive === true ? "text-success" : "text-muted-foreground/40"
-                    )} />
-                  </div>
-                  <CardTitle className="text-sm font-medium text-muted-foreground mt-3">
-                    {k.title}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="px-5 pb-5 space-y-3">
-                  <div>
-                    <p className={cn(
-                      "text-3xl font-bold tracking-tight",
-                      isFirst ? "gradient-text" : "text-foreground"
-                    )}>
-                      {k.value}
-                    </p>
-                    <p className={cn(
-                      "mt-1 text-xs font-medium",
-                      k.deltaPositive === true && "text-success",
-                      k.deltaPositive === false && "text-warning",
-                      k.deltaPositive === null && "text-muted-foreground",
-                    )}>
-                      {k.deltaLabel}
-                    </p>
-                  </div>
-                  {sparklineData[idx] && sparklineData[idx].length > 0 && (
-                    <div className="pt-2">
-                      <KpiMicroSparkline data={sparklineData[idx]} />
-                    </div>
+        {/* KPIs */}
+        <section aria-labelledby="kpi-heading">
+          <h2 id="kpi-heading" className="sr-only">Indicadores principais</h2>
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            {dashboardKPIs.map((k, idx) => {
+              const isFirst = idx === 0
+              return (
+                <Card
+                  key={k.id}
+                  className={cn(
+                    "overflow-hidden transition-colors",
+                    isFirst ? "gradient-border" : "bg-surface-1 border border-border/60"
                   )}
-                </CardContent>
-              </Card>
-            )
-          })}
-        </div>
-      </section>
-
-      {/* Chart + Activity */}
-      <div className="grid gap-5 lg:grid-cols-5">
-        <section className="lg:col-span-2" aria-label="Tendência semanal">
-          <Card className="h-full bg-surface-1 border border-border/60">
-            <CardHeader className="pb-2">
-              <div className="flex items-center gap-2">
-                <Activity className="h-4 w-4 text-brand" />
-                <CardTitle className="text-sm font-semibold">Esta semana</CardTitle>
-              </div>
-              <CardDescription>Minutos transcritos por dia</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Sparkline7d
-                values={minutes7dData.values}
-                labels={SPARK_LABELS}
-                title="Minutos transcritos por dia"
-                description="Últimos 7 dias."
-              />
-            </CardContent>
-          </Card>
-        </section>
-
-        <section className="lg:col-span-3" aria-labelledby="activity-heading">
-          <Card className="h-full bg-surface-1 border border-border/60">
-            <CardHeader className="flex flex-row items-center justify-between">
-              <div>
-                <CardTitle id="activity-heading" className="text-sm font-semibold">
-                  Atividade recente
-                </CardTitle>
-                <CardDescription>Eventos de STT, intents e integrações.</CardDescription>
-              </div>
-              <Link
-                href="/activity"
-                className="text-xs font-medium text-brand hover:text-brand/80 transition-colors inline-flex items-center gap-1 shrink-0"
-              >
-                Ver tudo
-                <ArrowUpRight className="h-3 w-3" />
-              </Link>
-            </CardHeader>
-            <CardContent className="px-5 pb-5">
-              <ul className="space-y-1">
-                {recentSpacesList.length > 0 ? (
-                  recentSpacesList.slice(0, 4).map((space) => (
-                    <li
-                      key={space.id}
-                      className="flex items-center justify-between gap-3 rounded-[var(--radius-md)] px-2 py-2.5 hover:bg-surface-2/50 -mx-2 transition-colors"
-                    >
-                      <div className="flex items-center gap-2.5 min-w-0">
-                        <CheckCircle className="h-4 w-4 shrink-0 text-success" />
-                        <p className="text-sm font-medium truncate text-success">
-                          Espaço «{space.name}» atualizado
-                        </p>
+                >
+                  <CardHeader className="pb-2 px-5 pt-5">
+                    <div className="flex items-center justify-between">
+                      <div className={cn(
+                        "flex h-8 w-8 items-center justify-center rounded-[var(--radius-md)]",
+                        isFirst ? "bg-brand/15 text-brand" : "bg-surface-2 text-muted-foreground"
+                      )}>
+                        <k.Icon className="h-4 w-4" />
                       </div>
-                      <p className="shrink-0 text-xs text-muted-foreground">
-                        {formatRelativeTime(space.lastActivity)}
+                      {k.delta > 0
+                        ? <TrendingUp className="h-3.5 w-3.5 text-success" />
+                        : k.delta < 0
+                        ? <TrendingDown className="h-3.5 w-3.5 text-destructive" />
+                        : <TrendingUp className="h-3.5 w-3.5 text-muted-foreground/40" />
+                      }
+                    </div>
+                    <CardTitle className="text-sm font-medium text-muted-foreground mt-3">
+                      {k.title}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="px-5 pb-5 space-y-3">
+                    <div>
+                      <p className={cn(
+                        "text-3xl font-bold tracking-tight",
+                        isFirst ? "gradient-text" : "text-foreground"
+                      )}>
+                        {k.value}
                       </p>
-                    </li>
-                  ))
-                ) : (
-                  <li className="text-sm text-muted-foreground py-2">
-                    Nenhuma atividade recente
-                  </li>
-                )}
-              </ul>
-            </CardContent>
-          </Card>
+                      <p className={cn("mt-1 text-xs font-medium", deltaClass(k.delta))}>
+                        {k.deltaLabel}
+                      </p>
+                    </div>
+                    {sparklineData[idx] && sparklineData[idx].length > 0 && (
+                      <div className="pt-2">
+                        <KpiMicroSparkline data={sparklineData[idx]} />
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              )
+            })}
+          </div>
         </section>
-      </div>
 
-      {/* Quick actions */}
-      <section aria-labelledby="quick-heading">
-        <h2 id="quick-heading" className="mb-4 text-sm font-semibold text-muted-foreground uppercase tracking-wider">
-          Ações rápidas
-        </h2>
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-          {DASHBOARD_QUICK_ACTIONS.map((q) => (
-            <Link
-              key={q.href}
-              href={q.href}
-              className={cn(
-                "group flex items-center justify-between gap-3 rounded-[var(--radius-lg)] border border-border/60 bg-surface-1 p-4",
-                "hover:border-brand/30 hover:bg-surface-2/40 transition-colors"
-              )}
-            >
-              <div className="min-w-0">
-                <p className="text-sm font-semibold text-foreground">{q.label}</p>
-                <p className="mt-0.5 text-xs text-muted-foreground">{q.description}</p>
-              </div>
-              <ArrowUpRight className="h-4 w-4 shrink-0 text-muted-foreground/40 group-hover:text-brand transition-colors" />
-            </Link>
-          ))}
+        {/* Chart + Activity */}
+        <div className="grid gap-5 lg:grid-cols-5">
+          <section className="lg:col-span-2" aria-label="Tendência semanal">
+            <Card className="h-full bg-surface-1 border border-border/60">
+              <CardHeader className="pb-2">
+                <div className="flex items-center gap-2">
+                  <Activity className="h-4 w-4 text-brand" />
+                  <CardTitle className="text-sm font-semibold">Esta semana</CardTitle>
+                </div>
+                <CardDescription>Minutos gravados por dia</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Sparkline7d
+                  values={minutes7dData.values}
+                  labels={SPARK_LABELS}
+                  title="Minutos gravados por dia"
+                  description="Últimos 7 dias."
+                />
+              </CardContent>
+            </Card>
+          </section>
+
+          <section className="lg:col-span-3" aria-labelledby="activity-heading">
+            <Card className="h-full bg-surface-1 border border-border/60">
+              <CardHeader className="flex flex-row items-center justify-between">
+                <div>
+                  <CardTitle id="activity-heading" className="text-sm font-semibold">
+                    Atividade recente
+                  </CardTitle>
+                  <CardDescription>Gravações, tarefas e integrações.</CardDescription>
+                </div>
+                <Link
+                  href="/activity"
+                  className="text-xs font-medium text-brand hover:text-brand/80 transition-colors inline-flex items-center gap-1 shrink-0"
+                >
+                  Ver tudo
+                  <ArrowUpRight className="h-3 w-3" />
+                </Link>
+              </CardHeader>
+              <CardContent className="px-5 pb-5">
+                {recentActivity.length > 0 ? (
+                  <ul className="space-y-1">
+                    {recentActivity.map((item) => (
+                      <li key={item.id}>
+                        {item.href ? (
+                          <Link
+                            href={item.href}
+                            className="flex items-center justify-between gap-3 rounded-[var(--radius-md)] px-2 py-2.5 hover:bg-surface-2/50 -mx-2 transition-colors"
+                          >
+                            <div className="flex items-center gap-2.5 min-w-0">
+                              <ActivityIcon icon={item.icon} />
+                              <p className="text-sm font-medium truncate">{item.label}</p>
+                            </div>
+                            <p className="shrink-0 text-xs text-muted-foreground">
+                              {formatRelativeTime(new Date(item.createdAt))}
+                            </p>
+                          </Link>
+                        ) : (
+                          <div className="flex items-center justify-between gap-3 rounded-[var(--radius-md)] px-2 py-2.5 -mx-2">
+                            <div className="flex items-center gap-2.5 min-w-0">
+                              <ActivityIcon icon={item.icon} />
+                              <p className="text-sm font-medium truncate">{item.label}</p>
+                            </div>
+                            <p className="shrink-0 text-xs text-muted-foreground">
+                              {formatRelativeTime(new Date(item.createdAt))}
+                            </p>
+                          </div>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <div className="flex flex-col items-center justify-center py-8 gap-3 text-center">
+                    <Mic className="h-8 w-8 text-muted-foreground/30" />
+                    <p className="text-sm text-muted-foreground">
+                      Nenhuma atividade ainda.
+                    </p>
+                    <Link
+                      href="/capture"
+                      className="text-xs font-medium text-brand hover:text-brand/80 transition-colors"
+                    >
+                      Comece gravando seu primeiro áudio em /capture
+                    </Link>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </section>
         </div>
-      </section>
 
-      {/* Recent spaces */}
-      <RecentSpaces spaces={recentSpacesList} />
+        {/* Quick actions */}
+        <section aria-labelledby="quick-heading">
+          <h2 id="quick-heading" className="mb-4 text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+            Ações rápidas
+          </h2>
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+            {DASHBOARD_QUICK_ACTIONS.map((q) => (
+              <Link
+                key={q.href}
+                href={q.href}
+                className={cn(
+                  "group flex items-center justify-between gap-3 rounded-[var(--radius-lg)] border border-border/60 bg-surface-1 p-4",
+                  "hover:border-brand/30 hover:bg-surface-2/40 transition-colors"
+                )}
+              >
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-foreground">{q.label}</p>
+                  <p className="mt-0.5 text-xs text-muted-foreground">{q.description}</p>
+                </div>
+                <ArrowUpRight className="h-4 w-4 shrink-0 text-muted-foreground/40 group-hover:text-brand transition-colors" />
+              </Link>
+            ))}
+          </div>
+        </section>
+
+        {/* Recent spaces */}
+        <RecentSpaces spaces={recentSpacesList} />
       </div>
 
       {/* Sidepanel — Primeiros passos */}
@@ -294,15 +317,15 @@ export default async function DashboardPage() {
 }
 
 function formatRelativeTime(date: Date): string {
-  const now = new Date()
-  const diffMs = now.getTime() - date.getTime()
-  const diffMins = Math.floor(diffMs / 60000)
-  const diffHours = Math.floor(diffMs / 3600000)
-  const diffDays = Math.floor(diffMs / 86400000)
+  const rtf = new Intl.RelativeTimeFormat("pt-BR", { numeric: "auto" })
+  const diffMs = date.getTime() - Date.now()
+  const diffSecs = Math.round(diffMs / 1000)
+  const diffMins = Math.round(diffSecs / 60)
+  const diffHours = Math.round(diffMins / 60)
+  const diffDays = Math.round(diffHours / 24)
 
-  if (diffMins < 60) return `há ${diffMins} min`
-  if (diffHours < 24) return `há ${diffHours}h`
-  if (diffDays === 1) return "ontem"
-  if (diffDays < 7) return `há ${diffDays}d`
-  return "há mais de uma semana"
+  if (Math.abs(diffMins) < 60) return rtf.format(diffMins, "minutes")
+  if (Math.abs(diffHours) < 24) return rtf.format(diffHours, "hours")
+  if (Math.abs(diffDays) < 30) return rtf.format(diffDays, "days")
+  return rtf.format(Math.round(diffDays / 30), "months")
 }

@@ -28,6 +28,7 @@ export default async function TasksPage() {
       include: {
         space: { select: { name: true } },
         recording: { select: { title: true, capturedAt: true } },
+        assignee: { select: { id: true, name: true } },
       },
       orderBy: [{ order: "asc" }, { createdAt: "desc" }],
       take: 100,
@@ -58,6 +59,8 @@ export default async function TasksPage() {
       : null,
     columnId: task.columnId,
     order: task.order,
+    assigneeUserId: task.assigneeUserId,
+    assigneeName: task.assignee?.name ?? null,
   }));
 
   const initialColumns: TaskColumnItem[] = columns.map((c) => ({

@@ -79,7 +79,7 @@ export async function GET(request: NextRequest) {
     ? new Date(Date.now() + tokens.expires_in * 1000)
     : null;
 
-  await db.integration.upsert({
+  const integration = await db.integration.upsert({
     where: {
       userId_provider: {
         userId: session.userId,
@@ -103,6 +103,15 @@ export async function GET(request: NextRequest) {
       expiresAt,
       connectedAt: new Date(),
       metadata: { scope: tokens.scope ?? null },
+    },
+  });
+
+  await db.auditLog.create({
+    data: {
+      userId: session.userId,
+      action: "integration.connected",
+      entityType: "Integration",
+      entityId: integration.id,
     },
   });
 

@@ -4,10 +4,11 @@ vi.mock("../env", () => ({
   env: {
     STRIPE_PRICE_PRO: "price_pro_test",
     STRIPE_PRICE_ENTERPRISE: "price_enterprise_test",
+    STRIPE_PRICE_ADDON_200: undefined,
   },
 }));
 
-import { BILLING_ADD_ONS, BILLING_PLANS, PLAN_LIMITS, planFromPriceId } from "./plans";
+import { ADDON_MINUTES, BILLING_ADD_ONS, BILLING_PLANS, PLAN_LIMITS, PLANS, planFromPriceId } from "./plans";
 
 describe("billing plans", () => {
   it("keeps plan limits and add-on pricing centralized", () => {
@@ -21,6 +22,12 @@ describe("billing plans", () => {
     expect(BILLING_PLANS.pro.priceCents).toBe(5900);
     expect(BILLING_PLANS.enterprise.priceCents).toBe(24900);
     expect(BILLING_ADD_ONS.extraMinutes200.priceCents).toBe(2900);
+
+    // Aliases
+    expect(PLANS.pro.priceBRL).toBe(59);
+    expect(PLANS.enterprise.priceBRL).toBe(249);
+    expect(ADDON_MINUTES.priceBRL).toBe(29);
+    expect(ADDON_MINUTES.minutes).toBe(200);
   });
 
   it("maps stripe prices to plans", () => {

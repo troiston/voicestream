@@ -71,6 +71,16 @@ export async function createSpaceAction(
 
     revalidatePath("/spaces");
 
+    // Audit log
+    await db.auditLog.create({
+      data: {
+        userId: session.userId,
+        action: "space.create",
+        entityType: "Space",
+        entityId: space.id,
+      },
+    });
+
     const spaceItem: SpaceItem = {
       id: space.id,
       name: space.name,

@@ -133,3 +133,20 @@ export async function createTasksFromRecordingSuggestions(
     };
   }
 }
+
+// ─── updateRecordingTitle ────────────────────────────────────────────────────
+
+export async function updateRecordingTitle(recordingId: string, title: string) {
+  try {
+    const session = await requireSession();
+    const trimmed = title.trim().slice(0, 200);
+
+    await assertRecordingAccess(recordingId, session.userId);
+    await db.recording.update({ where: { id: recordingId }, data: { title: trimmed || null } });
+
+    revalidatePath(`/recordings/${recordingId}`);
+    return { ok: true as const };
+  } catch (err) {
+    return { ok: false as const, error: err instanceof Error ? err.message : "Erro ao atualizar título." };
+  }
+}

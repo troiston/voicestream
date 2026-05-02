@@ -14,6 +14,7 @@ import { TaskDetailDialog, type TaskDetailData } from "./task-detail-dialog";
 import type { LabelItem } from "./labels-popover";
 import { cn } from "@/lib/utils";
 import { getTaskDetail } from "@/features/tasks/actions";
+import { toast } from "sonner";
 
 export interface TasksViewProps {
   initialTasks: TaskListItem[];
@@ -137,6 +138,8 @@ export function TasksView({ initialTasks, initialColumns, defaultSpaceId, userId
       if (result.ok) {
         setDetailTask(result.task as TaskDetailData);
         setDetailOpen(true);
+      } else {
+        toast.error(result.error || "Erro ao abrir tarefa");
       }
     });
   }, [startDetailTransition]);

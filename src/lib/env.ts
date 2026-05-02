@@ -9,6 +9,7 @@ const envSchema = z.object({
   NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: z.string().startsWith("pk_").optional(),
   STRIPE_PRICE_PRO: z.preprocess((v) => (v === "" ? undefined : v), z.string().startsWith("price_").optional()),
   STRIPE_PRICE_ENTERPRISE: z.preprocess((v) => (v === "" ? undefined : v), z.string().startsWith("price_").optional()),
+  STRIPE_PRICE_ADDON_200: z.preprocess((v) => (v === "" ? undefined : v), z.string().startsWith("price_").optional()),
   BETTER_AUTH_SECRET: z.string().min(16),
   BETTER_AUTH_URL: z.string().url(),
   GOOGLE_CLIENT_ID: z.preprocess(

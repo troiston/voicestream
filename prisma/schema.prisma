@@ -44,6 +44,7 @@ model User {
   spaceInvitesSent SpaceInvite[]
   integrations     Integration[]
   comments         Comment[]      @relation("CommentAuthor")
+  taskSuggestionsAssigned TaskSuggestion[] @relation("TaskSuggestionAssignee")
 
   @@index([isDemo])
   @@map("user")
@@ -216,6 +217,7 @@ model Space {
   tasks       Task[]
   taskColumns TaskColumn[]
   labels      Label[]
+  taskSuggestions TaskSuggestion[] @relation("SpaceTaskSuggestions")
 
   @@unique([ownerId, name])
   @@index([ownerId])
@@ -292,11 +294,17 @@ model Recording {
   updatedAt    DateTime        @updatedAt
   encryptionMeta Json?
 
+  topicalSummary    String?         @db.Text
+  decisions         Json?
+  nextSteps         Json?
+  transcriptSegments Json?
+
   space         Space          @relation(fields: [spaceId], references: [id], onDelete: Cascade)
   user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
   transcription Transcription?
   summary       Summary?
   tasks         Task[]
+  suggestions   TaskSuggestion[]
 
   @@index([spaceId, capturedAt(sort: Desc)])
   @@index([userId])
@@ -516,4 +524,31 @@ model Attachment {
 
   @@index([taskId])
   @@map("attachment")
+}
+
+model TaskSuggestion {
+  id            String     @id @default(cuid())
+  recordingId   String
+  recording     Recording  @relation(fields: [recordingId], references: [id], onDelete: Cascade)
+  spaceId       String
+  space         Space      @relation("SpaceTaskSuggestions", fields: [spaceId], references: [id], onDelete: Cascade)
+  what          String
+  why           String?
+  who           String?
+  assigneeId    String?
+  assignee      User?      @relation("TaskSuggestionAssignee", fields: [assigneeId], references: [id], onDelete: SetNull)
+  assigneeMatch String     @default("pending")
+  whenText      String?
+  whenDate      DateTime?
+  whereText     String?
+  how           String?
+  howMuch       String?
+  sourceSnippet String?    @db.Text
+  status        String     @default("pending")
+  createdTaskId String?
+  createdAt     DateTime   @default(now())
+
+  @@index([recordingId])
+  @@index([status])
+  @@map("task_suggestion")
 }

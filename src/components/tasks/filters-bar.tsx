@@ -18,12 +18,19 @@ export interface SpaceFilterItem {
   name: string;
 }
 
+export interface MemberFilterItem {
+  id: string;
+  name: string;
+}
+
 export interface KanbanFilters {
   search: string;
   labelIds: string[];
   overdue: boolean;
   dueToday: boolean;
   spaceId?: string;
+  assigneeIds: string[];
+  origem: "all" | "manual" | "gravacao";
 }
 
 interface FiltersBarProps {
@@ -31,6 +38,7 @@ interface FiltersBarProps {
   onChange: (filters: KanbanFilters) => void;
   labels?: LabelFilterItem[];
   spaces?: SpaceFilterItem[]; // Only for global mode
+  members?: MemberFilterItem[];
   mode?: "global" | "space";
 }
 
@@ -54,6 +62,7 @@ export function FiltersBar({
   onChange,
   labels = [],
   spaces = [],
+  members = [],
   mode = "space",
 }: FiltersBarProps) {
   const set = (partial: Partial<KanbanFilters>) =>
@@ -64,6 +73,15 @@ export function FiltersBar({
     set({
       labelIds: current.includes(id)
         ? current.filter((l) => l !== id)
+        : [...current, id],
+    });
+  };
+
+  const toggleAssignee = (id: string) => {
+    const current = filters.assigneeIds;
+    set({
+      assigneeIds: current.includes(id)
+        ? current.filter((a) => a !== id)
         : [...current, id],
     });
   };
@@ -131,6 +149,47 @@ export function FiltersBar({
           })}
         </div>
       )}
+
+      {/* Assignee filter chips */}
+      {members.length > 0 && (
+        <div className="flex items-center gap-1 flex-wrap" role="group" aria-label="Filtrar por responsável">
+          {members.map((m) => {
+            const active = filters.assigneeIds.includes(m.id);
+            return (
+              <button
+                key={m.id}
+                type="button"
+                onClick={() => toggleAssignee(m.id)}
+                aria-pressed={active}
+                title={m.name}
+                className={cn(
+                  "flex items-center gap-1 h-7 px-2 text-xs rounded-full border transition-colors",
+                  active
+                    ? "border-primary bg-primary/10 text-primary"
+                    : "border-border/50 text-muted-foreground hover:border-border hover:text-foreground",
+                )}
+              >
+                <span className="size-4 rounded-full bg-surface-2 flex items-center justify-center text-[10px] font-semibold uppercase shrink-0">
+                  {m.name.charAt(0)}
+                </span>
+                {m.name}
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Origem filter */}
+      <select
+        value={filters.origem}
+        onChange={(e) => set({ origem: e.target.value as KanbanFilters["origem"] })}
+        className="h-8 px-2 text-sm rounded-[var(--radius-md)] border border-input bg-transparent outline-none focus:ring-2 focus:ring-ring/50"
+        aria-label="Filtrar por origem"
+      >
+        <option value="all">Todas as origens</option>
+        <option value="manual">Criadas manualmente</option>
+        <option value="gravacao">De gravações</option>
+      </select>
 
       {/* Due date toggles */}
       <button

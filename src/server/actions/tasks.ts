@@ -86,6 +86,7 @@ export async function createTaskAction(
       include: {
         space: { select: { name: true } },
         recording: { select: { title: true, capturedAt: true } },
+        assignee: { select: { id: true, name: true } },
       },
     });
 
@@ -105,6 +106,8 @@ export async function createTaskAction(
         : null,
       columnId: createdTask.columnId,
       order: createdTask.order,
+      assigneeUserId: createdTask.assigneeUserId,
+      assigneeName: createdTask.assignee?.name ?? null,
     };
 
     return { status: "success", task };

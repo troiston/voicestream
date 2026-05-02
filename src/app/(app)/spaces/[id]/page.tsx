@@ -125,6 +125,7 @@ export default async function SpaceDetailPage({ params, searchParams }: PageProp
       include: {
         space: { select: { name: true } },
         recording: { select: { title: true, capturedAt: true } },
+        assignee: { select: { id: true, name: true } },
       },
       orderBy: [{ order: "asc" }, { createdAt: "desc" }],
     }),
@@ -217,6 +218,8 @@ export default async function SpaceDetailPage({ params, searchParams }: PageProp
       : null,
     columnId: task.columnId,
     order: task.order,
+    assigneeUserId: task.assigneeUserId,
+    assigneeName: task.assignee?.name ?? null,
   }));
 
   const initialColumns: TaskColumnItem[] = columns.map((c) => ({

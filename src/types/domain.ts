@@ -102,4 +102,6 @@ export type TaskListItem = {
   recordingCapturedAt: string | null;
   columnId: string | null;
   order: number;
+  assigneeUserId: string | null;
+  assigneeName: string | null;
 };

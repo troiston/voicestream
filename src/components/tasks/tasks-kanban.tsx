@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useRef, useTransition } from "react";
+import { useState, useCallback, useRef, useTransition, useMemo } from "react";
 import {
   DndContext,
   DragOverlay,
@@ -23,6 +23,7 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { GripVertical, Pencil, Trash2, Plus, Check, X } from "lucide-react";
+import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import type { TaskListItem, TaskColumnItem } from "@/types/domain";
@@ -37,7 +38,7 @@ import {
 import { getTaskDetail } from "@/features/tasks/actions";
 import { TaskCard } from "@/components/tasks/task-card";
 import { AddCardButton } from "@/components/tasks/add-card-button";
-import { FiltersBar, type KanbanFilters, type LabelFilterItem, type SpaceFilterItem } from "@/components/tasks/filters-bar";
+import { FiltersBar, type KanbanFilters, type LabelFilterItem, type SpaceFilterItem, type MemberFilterItem } from "@/components/tasks/filters-bar";
 import { TaskDetailDialog, type TaskDetailData } from "@/components/tasks/task-detail-dialog";
 import type { LabelItem } from "@/components/tasks/labels-popover";
 
@@ -55,6 +56,7 @@ interface TasksKanbanProps {
   mode?: "global" | "space";
   spaceLabels?: LabelFilterItem[];
   spaceFilterList?: SpaceFilterItem[];
+  memberList?: MemberFilterItem[];
   currentUserId?: string;
 }
 
@@ -272,6 +274,11 @@ function applyFilters(tasks: TaskListItem[], filters: KanbanFilters): TaskListIt
       const due = new Date(t.dueAt);
       if (due < today || due >= tomorrow) return false;
     }
+    if (filters.assigneeIds.length > 0) {
+      if (!t.assigneeUserId || !filters.assigneeIds.includes(t.assigneeUserId)) return false;
+    }
+    if (filters.origem === "manual" && t.recordingId !== null) return false;
+    if (filters.origem === "gravacao" && t.recordingId === null) return false;
     return true;
   });
 }
@@ -290,6 +297,7 @@ export function TasksKanban({
   mode = "space",
   spaceLabels = [],
   spaceFilterList = [],
+  memberList = [],
   currentUserId,
 }: TasksKanbanProps) {
   const [activeColId, setActiveColId] = useState<string | null>(null);
@@ -301,7 +309,21 @@ export function TasksKanban({
     labelIds: [],
     overdue: false,
     dueToday: false,
+    assigneeIds: [],
+    origem: "all",
   });
+
+  // Derive member list from tasks if none provided externally
+  const derivedMemberList = useMemo<MemberFilterItem[]>(() => {
+    if (memberList.length > 0) return memberList;
+    const seen = new Map<string, string>();
+    for (const t of tasks) {
+      if (t.assigneeUserId && t.assigneeName && !seen.has(t.assigneeUserId)) {
+        seen.set(t.assigneeUserId, t.assigneeName);
+      }
+    }
+    return Array.from(seen.entries()).map(([id, name]) => ({ id, name }));
+  }, [tasks, memberList]);
 
   // Task detail dialog
   const [selectedTask, setSelectedTask] = useState<TaskDetailData | null>(null);
@@ -342,6 +364,8 @@ export function TasksKanban({
         if (result.ok) {
           setSelectedTask(result.task as unknown as TaskDetailData);
           setDialogOpen(true);
+        } else {
+          toast.error(result.error || "Erro ao abrir tarefa");
         }
       });
     },
@@ -515,6 +539,7 @@ export function TasksKanban({
         onChange={setFilters}
         labels={spaceLabels}
         spaces={spaceFilterList}
+        members={derivedMemberList}
         mode={mode}
       />
 

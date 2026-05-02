@@ -41,7 +41,7 @@ async function main() {
   const pro = await ensureProductWithPrice({
     lookupKey: "voicestream_pro_monthly_brl",
     name: "VoiceStream Pro",
-    description: "500 minutos de transcrição/mês, espaços ilimitados, transcrição avançada.",
+    description: "500 minutos por mês • Espaços ilimitados • Tarefas sugeridas com 5W2H • Calendário interno • Suporte por e-mail",
     amountCents: 5900,
     metadata: { plan: "pro", minutes_per_month: "500" },
   });
@@ -49,7 +49,7 @@ async function main() {
   const enterprise = await ensureProductWithPrice({
     lookupKey: "voicestream_enterprise_monthly_brl",
     name: "VoiceStream Empresa",
-    description: "2.000 minutos/mês, SSO/SAML, API e suporte prioritário.",
+    description: "2.000 minutos por mês • Espaços ilimitados • Time com convites • Sincronização com Google Calendar • Suporte prioritário",
     amountCents: 24900,
     metadata: { plan: "enterprise", minutes_per_month: "2000" },
   });
@@ -65,7 +65,7 @@ async function main() {
   console.log("\n[stripe] cole no .env:\n");
   console.log(`STRIPE_PRICE_PRO="${pro.priceId}"`);
   console.log(`STRIPE_PRICE_ENTERPRISE="${enterprise.priceId}"`);
-  console.log(`STRIPE_PRICE_ADDON_200_MINUTES="${addon.priceId}"`);
+  console.log(`STRIPE_PRICE_ADDON_200="${addon.priceId}"`);
 }
 
 main().catch((e) => {
