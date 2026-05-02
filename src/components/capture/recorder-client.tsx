@@ -49,7 +49,9 @@ export function RecorderClient({
   const isSupported =
     typeof window !== "undefined" && typeof MediaRecorder !== "undefined";
 
-  // Waveform animation loop
+  // Waveform animation loop — modulador simétrico baseado em amplitude (RMS por
+  // slice do sinal PCM no domínio do tempo). Lados esquerdo e direito espelham
+  // a partir do centro, ambos reagindo igualmente à voz.
   const drawWaveform = useCallback(() => {
     const canvas = canvasRef.current;
     const analyser = analyserRef.current;
@@ -58,24 +60,43 @@ export function RecorderClient({
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    const bufferLength = analyser.frequencyBinCount;
+    const bufferLength = analyser.fftSize;
     const dataArray = new Uint8Array(bufferLength);
-    analyser.getByteFrequencyData(dataArray);
+    analyser.getByteTimeDomainData(dataArray);
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    const barCount = 40;
-    const barWidth = canvas.width / barCount - 2;
-    const step = Math.floor(bufferLength / barCount);
+    const totalBars = 41;
+    const half = (totalBars - 1) / 2;
+    const sliceSize = Math.floor(bufferLength / totalBars);
+    const gap = 2;
+    const barWidth = canvas.width / totalBars - gap;
 
-    for (let i = 0; i < barCount; i++) {
-      const value = dataArray[i * step] / 255;
+    // Calcula RMS por slice (amplitude do som naquele instante).
+    const amplitudes: number[] = new Array(totalBars);
+    for (let i = 0; i < totalBars; i++) {
+      let sumSq = 0;
+      for (let j = 0; j < sliceSize; j++) {
+        const sample = (dataArray[i * sliceSize + j] - 128) / 128;
+        sumSq += sample * sample;
+      }
+      const rms = Math.sqrt(sumSq / sliceSize);
+      amplitudes[i] = Math.min(1, rms * 2.5);
+    }
+
+    // Espelha em volta do centro: barra `i` usa max entre amplitude `i` e seu
+    // espelho — garante simetria perfeita reagindo à voz.
+    for (let i = 0; i < totalBars; i++) {
+      const distFromCenter = Math.abs(i - half) / half;
+      const mirrored = Math.max(amplitudes[i], amplitudes[totalBars - 1 - i]);
+      // Atenua extremos pra dar shape de "barril" focado na voz.
+      const shape = 1 - distFromCenter * 0.35;
+      const value = mirrored * shape;
       const barHeight = Math.max(4, value * canvas.height);
-      const x = i * (barWidth + 2);
+      const x = i * (barWidth + gap);
       const y = (canvas.height - barHeight) / 2;
 
-      // Use brand gradient colors
-      const alpha = 0.4 + value * 0.6;
+      const alpha = 0.45 + value * 0.55;
       ctx.fillStyle = `oklch(65% 0.25 275 / ${alpha})`;
       ctx.beginPath();
       ctx.roundRect(x, y, barWidth, barHeight, 2);
