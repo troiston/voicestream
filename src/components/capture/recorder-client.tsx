@@ -44,7 +44,7 @@ export function RecorderClient({
   const rafRef = useRef<number>(0);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const mimeTypeRef = useRef<string>("audio/webm");
-  const smoothedBarsRef = useRef<number[]>([]);
+  const historyRef = useRef<number[][]>([]);
 
   // Check MediaRecorder support
   const isSupported =
@@ -75,10 +75,9 @@ export function RecorderClient({
 
     // Calcula RMS por slice (amplitude do som naquele instante).
     const amplitudes: number[] = new Array(totalBars);
-    if (smoothedBarsRef.current.length !== totalBars) {
-      smoothedBarsRef.current = new Array(totalBars).fill(0);
-    }
 
+    // Calcula RMS bruto para cada slice.
+    const rawAmplitudes: number[] = new Array(totalBars);
     for (let i = 0; i < totalBars; i++) {
       let sumSq = 0;
       for (let j = 0; j < sliceSize; j++) {
@@ -86,12 +85,17 @@ export function RecorderClient({
         sumSq += sample * sample;
       }
       const rms = Math.sqrt(sumSq / sliceSize);
-      const target = Math.min(1, rms * 2.2);
-      const previous = smoothedBarsRef.current[i] ?? 0;
-      const smoothing = target > previous ? 0.28 : 0.14;
-      const next = previous + (target - previous) * smoothing;
-      smoothedBarsRef.current[i] = next;
-      amplitudes[i] = next;
+      rawAmplitudes[i] = Math.min(1, rms * 2.2);
+    }
+
+    // Média móvel deslizante (janela N=5 frames).
+    historyRef.current.push([...rawAmplitudes]);
+    if (historyRef.current.length > 5) historyRef.current.shift();
+    const N = historyRef.current.length;
+    for (let i = 0; i < totalBars; i++) {
+      let sum = 0;
+      for (const frame of historyRef.current) sum += frame[i];
+      amplitudes[i] = sum / N;
     }
 
     // Espelha em volta do centro: barra `i` usa max entre amplitude `i` e seu
@@ -161,6 +165,7 @@ export function RecorderClient({
 
       const analyser = audioCtx.createAnalyser();
       analyser.fftSize = 256;
+      analyser.smoothingTimeConstant = 0.85;
       analyserRef.current = analyser;
 
       const source = audioCtx.createMediaStreamSource(stream);
@@ -177,7 +182,7 @@ export function RecorderClient({
 
       recorder.onstart = () => {
         startedAtRef.current = Date.now();
-        smoothedBarsRef.current = [];
+        historyRef.current = [];
         setElapsed(0);
         setPhase("recording");
 

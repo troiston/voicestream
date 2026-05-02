@@ -60,6 +60,7 @@ const envSchema = z.object({
     (v) => (typeof v === "string" && (v === "" || !v.startsWith("http")) ? undefined : v),
     z.string().url().optional(),
   ),
+  CRON_SECRET: z.string().min(16),
 });
 
 export type Env = z.infer<typeof envSchema>;

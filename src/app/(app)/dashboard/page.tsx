@@ -102,7 +102,6 @@ export default async function DashboardPage() {
       title: "Integrações ativas",
       value: kpis.integrationsActive.toString(),
       hint: "Slack, Linear, Notion…",
-      deltaLabel: "(mock)",
       deltaPositive: false,
     },
   ]
@@ -111,7 +110,7 @@ export default async function DashboardPage() {
     minutes7dData.values,       // Minutos
     minutes7dData.values.map(v => Math.max(1, Math.round(v / 5))),  // Sessões aprox
     minutes7dData.values.map(v => Math.max(0, Math.round(v / 7))),  // Tarefas aprox
-    [kpis.integrationsActive, kpis.integrationsActive, kpis.integrationsActive, kpis.integrationsActive, kpis.integrationsActive, kpis.integrationsActive, kpis.integrationsActive], // Integrações (mock)
+    [kpis.integrationsActive, kpis.integrationsActive, kpis.integrationsActive, kpis.integrationsActive, kpis.integrationsActive, kpis.integrationsActive, kpis.integrationsActive], // Integrações
   ]
 
   return (

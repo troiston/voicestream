@@ -27,3 +27,18 @@ export async function updateProfile(input: unknown) {
   revalidatePath("/settings");
   return { ok: true };
 }
+
+const prefsSchema = z.record(z.string(), z.boolean());
+
+export async function updateNotificationPrefs(prefs: unknown) {
+  const session = await requireSession();
+  const data = prefsSchema.parse(prefs);
+
+  await db.user.update({
+    where: { id: session.userId },
+    data: { notificationPrefs: data },
+  });
+
+  revalidatePath("/settings");
+  return { ok: true };
+}

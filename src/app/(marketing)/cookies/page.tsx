@@ -6,7 +6,7 @@ import { COOKIE_PREFERENCES_STORAGE_KEY } from "@/lib/cookie-consent-key";
 
 const rows = [
   { name: "cv-cookie-preferences", purpose: "Lembrar a sua escolha (aceitar / rejeitar)", duration: "1 ano (persistente, localStorage)", type: "Essenciais" },
-  { name: "cv_session (mock)", purpose: "Manter a sessão simulada da app", duration: "Sessão (cookie, mock)", type: "Essenciais" },
+  { name: "__Secure-better-auth.session_token", purpose: "Manter o usuário autenticado durante a sessão", duration: "Até logout ou expiração da sessão", type: "Essenciais" },
   { name: "theme (next-themes)", purpose: "Preferência de tema claro/escuro", duration: "Persistente", type: "Preferência" },
 ] as const;
 

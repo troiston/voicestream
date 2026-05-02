@@ -26,7 +26,8 @@ model User {
   deletedAt        DateTime?
   onboardingCompletedAt DateTime?
 
-  preferences      Json?
+  preferences          Json?
+  notificationPrefs    Json?
 
   sessions      Session[]
   accounts      Account[]

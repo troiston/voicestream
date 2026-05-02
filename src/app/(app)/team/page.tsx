@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/table";
 import type { UserRole } from "@/types/team";
 import Link from "next/link";
+import { ResendInviteButton } from "./_components/resend-invite-button";
 
 export const metadata: Metadata = {
   title: "Equipe",
@@ -266,15 +267,7 @@ export default async function TeamPage() {
                             </time>
                           </TableCell>
                           <TableCell>
-                            <Button
-                              type="button"
-                              variant="secondary"
-                              size="sm"
-                              className="min-h-11"
-                              disabled
-                            >
-                              Reenviar (em breve)
-                            </Button>
+                            <ResendInviteButton inviteId={inv.id} />
                           </TableCell>
                         </TableRow>
                       ))}

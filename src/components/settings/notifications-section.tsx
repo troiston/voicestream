@@ -1,8 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
+import { toast } from "sonner";
 import { Card, CardContent, CardDescription, CardHeader } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
+import { updateNotificationPrefs } from "@/features/profile/actions";
 
 type NotificationPrefs = Record<string, Record<string, boolean>>;
 
@@ -16,12 +18,14 @@ const EVENTS = [
 
 interface NotificationsSectionProps {
   connectedProviders?: string[];
+  initialPrefs?: Record<string, boolean>;
 }
 
-export function NotificationsSection({ connectedProviders = [] }: NotificationsSectionProps) {
+export function NotificationsSection({ connectedProviders = [], initialPrefs }: NotificationsSectionProps) {
   const channels = ["Email", "Push", ...(connectedProviders.includes("slack") ? ["Slack"] : [])] as const;
   const CHANNELS = channels;
-  const initialPrefs: NotificationPrefs = {
+
+  const defaultPrefs: NotificationPrefs = {
     "Transcrição concluída": { Email: true, Push: true, ...(connectedProviders.includes("slack") ? { Slack: false } : {}) },
     "Nova tarefa": { Email: false, Push: true, ...(connectedProviders.includes("slack") ? { Slack: true } : {}) },
     "Menção": { Email: true, Push: true, ...(connectedProviders.includes("slack") ? { Slack: true } : {}) },
@@ -29,23 +33,34 @@ export function NotificationsSection({ connectedProviders = [] }: NotificationsS
     "Alerta de cobrança": { Email: true, Push: false, ...(connectedProviders.includes("slack") ? { Slack: false } : {}) },
   };
 
-  const [prefs, setPrefs] = useState<NotificationPrefs>(initialPrefs);
+  const [prefs, setPrefs] = useState<NotificationPrefs>(
+    initialPrefs ? (initialPrefs as unknown as NotificationPrefs) : defaultPrefs
+  );
 
-  const togglePref = (event: string, channel: string) => {
-    setPrefs((prev) => ({
-      ...prev,
-      [event]: {
-        ...prev[event],
-        [channel]: !prev[event]?.[channel],
-      },
-    }));
-  };
+  const togglePref = useCallback((event: string, channel: string) => {
+    setPrefs((prev) => {
+      const updated = {
+        ...prev,
+        [event]: {
+          ...prev[event],
+          [channel]: !prev[event]?.[channel],
+        },
+      };
+      // Persist immediately
+      updateNotificationPrefs(updated).then(() => {
+        toast.success("Preferências salvas");
+      }).catch(() => {
+        toast.error("Erro ao salvar preferências");
+      });
+      return updated;
+    });
+  }, []);
 
   return (
     <Card className="border border-border/60 bg-surface-1 shadow-none">
       <CardHeader>
         <h2 className="text-base font-semibold tracking-tight text-foreground">Notificações</h2>
-        <CardDescription>Canais de notificação por tipo de evento (mock).</CardDescription>
+        <CardDescription>Canais de notificação por tipo de evento.</CardDescription>
       </CardHeader>
       <CardContent>
         <div className="overflow-x-auto">
@@ -84,9 +99,6 @@ export function NotificationsSection({ connectedProviders = [] }: NotificationsS
             </tbody>
           </table>
         </div>
-        <p className="text-xs text-muted-foreground mt-4">
-          As preferências são armazenadas localmente até conectar o backend.
-        </p>
       </CardContent>
     </Card>
   );

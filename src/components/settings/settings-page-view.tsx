@@ -31,6 +31,7 @@ interface SettingsPageViewProps {
     image: string | null;
     bio: string | null;
     phone: string | null;
+    notificationPrefs?: unknown;
   } | null;
 }
 
@@ -77,7 +78,7 @@ export function SettingsPageView({ twoFactorEnabled = false, connectedProviders 
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Configurações</h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          Preferências da conta e do produto VoiceStream. Dados são mock até a fase de backend.
+          Preferências da conta e do produto VoiceStream.
         </p>
       </div>
 
@@ -168,7 +169,10 @@ export function SettingsPageView({ twoFactorEnabled = false, connectedProviders 
           </section>
 
           <section id="notificacoes">
-            <NotificationsSection connectedProviders={connectedProviders} />
+            <NotificationsSection
+              connectedProviders={connectedProviders}
+              initialPrefs={user?.notificationPrefs as Record<string, boolean> | undefined}
+            />
           </section>
 
           <section id="dispositivos">

@@ -38,6 +38,7 @@ export default async function SettingsPage() {
         image: true,
         bio: true,
         phone: true,
+        notificationPrefs: true,
       },
     });
   }
