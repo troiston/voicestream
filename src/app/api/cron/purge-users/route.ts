@@ -5,7 +5,7 @@ import { purgeDeletedUsers } from "@/features/admin/cleanup";
 export async function POST(req: NextRequest) {
   const auth = req.headers.get("authorization");
 
-  if (auth !== `Bearer ${env.CRON_SECRET}`) {
+  if (!env.CRON_SECRET || auth !== `Bearer ${env.CRON_SECRET}`) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
